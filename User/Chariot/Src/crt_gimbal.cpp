@@ -87,6 +87,38 @@ float Class_Gimbal::Update_Yaw_Transform_From_Screw()
     return now_yaw_mm;
 }
 
+void Class_Gimbal::Update_MiniPC_Command()
+{
+    if (MiniPC == nullptr)
+    {
+        MiniPC_Command_Flag = 0;
+        MiniPC_Command_Speed_Raw = 0;
+        MiniPC_Target_Yaw_Omega = 0.0f;
+        return;
+    }
+
+    MiniPC_Command_Flag = MiniPC->Get_CAN_Command_Flag();
+    MiniPC_Command_Speed_Raw = MiniPC->Get_CAN_Command_Speed();
+
+    float target_omega = (float)MiniPC_Command_Speed_Raw * MiniPC_Speed_To_Yaw_Omega_Scale;
+    if (target_omega > MiniPC_Yaw_Omega_Max)
+    {
+        target_omega = MiniPC_Yaw_Omega_Max;
+    }
+    else if (target_omega < -MiniPC_Yaw_Omega_Max)
+    {
+        target_omega = -MiniPC_Yaw_Omega_Max;
+    }
+
+    // 约定Flag=0为停转
+    if (MiniPC_Command_Flag == 0)
+    {
+        target_omega = 0.0f;
+    }
+
+    MiniPC_Target_Yaw_Omega = target_omega;
+}
+
 /* Function prototypes -------------------------------------------------------*/
 void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback()
 {
@@ -96,7 +128,7 @@ void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback
     //自己接着编写状态转移函数
     switch (Now_Status_Serial)
     {
-     case(0)://向右转
+     case(0)://向左转
      {
         Gimbal->Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Gimbal->Motor_Yaw.Set_Target_Omega_Radian(-speed);
@@ -166,29 +198,53 @@ void Class_Gimbal::Init()
  * @brief 输出到电机
  *
  */
-float test_yaw_omega = -5.0f;
+// float test_yaw_omega = -5.0f;
 float test_yaw_angle_mm = 100.0f;
 
 int my_allow = 0;
+int minipc_flag = 0;
 
 void Class_Gimbal::Output()
 {
+    //持续更新当前角度对应的丝杆位置
+    float now_yaw_mm = Update_Yaw_Transform_From_Screw();
+
+    //限制距离
+    const float yaw_limit_guard_mm = 200.0f;
+
     // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
     // Motor_Yaw.Set_Target_Omega_Radian(test_yaw_omega);
 
-    Motor_Yaw.PID_Omega.Set_K_P(Motor_Yaw_Omega_P_test);
-    Motor_Yaw.PID_Omega.Set_K_I(Motor_Yaw_Omega_I_test);
-    Motor_Yaw.PID_Omega.Set_K_D(Motor_Yaw_Omega_D_test);
+    // Motor_Yaw.PID_Omega.Set_K_P(Motor_Yaw_Omega_P_test);
+    // Motor_Yaw.PID_Omega.Set_K_I(Motor_Yaw_Omega_I_test);
+    // Motor_Yaw.PID_Omega.Set_K_D(Motor_Yaw_Omega_D_test);
 
-    Motor_Yaw.PID_Angle.Set_K_P(Motor_Yaw_Angle_P_test);
-    Motor_Yaw.PID_Angle.Set_K_I(Motor_Yaw_Angle_I_test);
-    Motor_Yaw.PID_Angle.Set_K_D(Motor_Yaw_Angle_D_test);
+    // Motor_Yaw.PID_Angle.Set_K_P(Motor_Yaw_Angle_P_test);
+    // Motor_Yaw.PID_Angle.Set_K_I(Motor_Yaw_Angle_I_test);
+    // Motor_Yaw.PID_Angle.Set_K_D(Motor_Yaw_Angle_D_test);
+
+/*----------------前置赋值------------------*/
+    if(minipc_flag == 1)
+    {
+        Set_Gimbal_Control_Type(Gimbal_Control_Type_MINIPC);
+    }
+    else if(minipc_flag == 0)
+    {
+        if(Yaw_Calibrated)
+        {
+            Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+        }
+        else
+        {
+            Set_Gimbal_Control_Type(Gimbal_Control_Type_YAW_UNCALIBRATION);
+        }
+    }
+/*---------------------------------*/
 
     if (Gimbal_Control_Type == Gimbal_Control_Type_DISABLE)
     {
         // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         // Motor_Yaw.Set_Target_Omega_Radian(0.0f);
-
     }
     else if(Gimbal_Control_Type == Gimbal_Control_Type_NORMAL)
     {
@@ -197,9 +253,26 @@ void Class_Gimbal::Output()
             Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
             Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
         }
+    }
+    else if (Gimbal_Control_Type == Gimbal_Control_Type_MINIPC)
+    {
+        float yaw_omega_cmd = MiniPC_Yaw_Direction * MiniPC_Target_Yaw_Omega;
 
-        // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-        // Motor_Yaw.Set_Target_Omega_Radian(0.0f);
+        if (Yaw_Calibrated)
+        {
+            // 到达丝杆行程边界后，禁止继续朝越界方向运动
+            if (now_yaw_mm <= (0.0f + yaw_limit_guard_mm) && yaw_omega_cmd < 0.0f)
+            {
+                yaw_omega_cmd = 0.0f;
+            }
+            if (now_yaw_mm >= (Yaw_Screw_Total_Travel_mm - yaw_limit_guard_mm) && yaw_omega_cmd > 0.0f)
+            {
+                yaw_omega_cmd = 0.0f;
+            }
+        }
+
+        Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+        Motor_Yaw.Set_Target_Omega_Radian(yaw_omega_cmd);
     }
 }
 
@@ -212,6 +285,8 @@ void Class_Gimbal::TIM_Calculate_PeriodElapsedCallback()
 
     PB11_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) == GPIO_PIN_SET ? 1 : 0;
     PB10_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) == GPIO_PIN_SET ? 1 : 0;
+
+    Update_MiniPC_Command();
 
     FSM_Yaw_Calibration.Yaw_Calibration_TIM_Status_PeriodElapsedCallback();
 

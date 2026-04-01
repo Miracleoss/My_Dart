@@ -115,6 +115,7 @@ public:
     void TIM_Calculate_PeriodElapsedCallback();
     float Calculate_Linear(float max,float min,float now_enc, float up_enc, float down_enc);
     float Update_Yaw_Transform_From_Screw();
+    void Update_MiniPC_Command();
 
 protected:
     //初始化相关常量
@@ -153,6 +154,17 @@ protected:
 
     // yaw轴角度
     float Target_Yaw_Angle = 0.0f;
+
+    // MiniPC下发原始命令
+    uint8_t MiniPC_Command_Flag = 0;
+    int16_t MiniPC_Command_Speed_Raw = 0;
+    // 实际用于yaw电机的角速度目标(rad/s)
+    float MiniPC_Target_Yaw_Omega = 0.0f;
+
+    // MiniPC速度指令换算参数
+    float MiniPC_Speed_To_Yaw_Omega_Scale = 1.0f;//目前采用同比
+    float MiniPC_Yaw_Omega_Max = 25.0f;
+    float MiniPC_Yaw_Direction = 1.0f;//目前同方向
 
     // yaw一次校准完成标志
     bool Yaw_Calibrated = false;
