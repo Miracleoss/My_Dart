@@ -54,11 +54,10 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
     if (CAN_Manage_Object->Rx_Buffer.Header.Identifier == MINIPC_CAN_RX_ID)
     {
       const uint8_t *can_data = CAN_Manage_Object->Rx_Buffer.Data;
-      if (!Verify_CAN_MiniPC_Frame(can_data)) return;
 
-      CAN_Command_Flag = can_data[2];
-      CAN_Command_Speed = (int16_t)(((uint16_t)can_data[3] << 8) | can_data[4]);
-      CAN_Command_Reserve = can_data[5];
+      CAN_Command_Flag = can_data[0];
+      CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
+      // CAN_Command_Reserve = can_data[5];
 
       // 兼容旧接口，便于上层直接沿用现有 getter
       Data_NUC_To_MCU.Control_Type = CAN_Command_Flag;
@@ -211,16 +210,6 @@ uint8_t Class_MiniPC::Get_CAN_MiniPC_Frame_Sum(const uint8_t *Frame_Data) const
   return (uint8_t)sum;
 }
 
-bool Class_MiniPC::Verify_CAN_MiniPC_Frame(const uint8_t *Frame_Data) const
-{
-  if (Frame_Data == NULL) return false;
-
-  if (Frame_Data[0] != CAN_FRAME_HEADER_0 || Frame_Data[1] != CAN_FRAME_HEADER_1) return false;
-  if (Frame_Data[7] != Frame_Rear) return false;
-  if (Frame_Data[6] != Get_CAN_MiniPC_Frame_Sum(Frame_Data)) return false;
-
-  return true;
-}
 
 /**
   * @brief CRC16 Verify function

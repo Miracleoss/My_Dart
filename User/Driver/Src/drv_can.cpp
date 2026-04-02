@@ -371,7 +371,7 @@ void TIM_CAN_PeriodElapsedCallback()
         CAN_Send_Data(&hfdcan2, 0x200, CAN2_0x200_Tx_Data, 8); //yaw电机 按照0x200 ID 发送 
 
         //CAN3->MINIPC
-        // CAN_Send_Data(&hfdcan3, 0x100, CAN3_MiniPC_Tx_Data_C, 8); //MINIC  按照0x100 ID 发送 
+        CAN_Send_Data(&hfdcan3, 0x100, CAN3_MiniPC_Tx_Data_C, 8); //MINIC  按照0x100 ID 发送 
     }
     if (mod4 == 4) // 250Hz
     {

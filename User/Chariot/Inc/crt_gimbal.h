@@ -163,7 +163,7 @@ protected:
 
     // MiniPC速度指令换算参数
     float MiniPC_Speed_To_Yaw_Omega_Scale = 1.0f;//目前采用同比
-    float MiniPC_Yaw_Omega_Max = 25.0f;
+    float MiniPC_Yaw_Omega_Max = 60.0f;
     float MiniPC_Yaw_Direction = 1.0f;//目前同方向
 
     // yaw一次校准完成标志

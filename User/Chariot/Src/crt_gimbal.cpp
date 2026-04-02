@@ -110,12 +110,6 @@ void Class_Gimbal::Update_MiniPC_Command()
         target_omega = -MiniPC_Yaw_Omega_Max;
     }
 
-    // 约定Flag=0为停转
-    if (MiniPC_Command_Flag == 0)
-    {
-        target_omega = 0.0f;
-    }
-
     MiniPC_Target_Yaw_Omega = target_omega;
 }
 
@@ -169,7 +163,7 @@ float Motor_Yaw_Omega_P_test = 1900.0f;
 float Motor_Yaw_Omega_I_test = 700.0f;  
 float Motor_Yaw_Omega_D_test = 0.0f;
 
-float Motor_Yaw_Angle_P_test = 20.0f;
+float Motor_Yaw_Angle_P_test = 30.0f;
 float Motor_Yaw_Angle_I_test = 0.0f;
 float Motor_Yaw_Angle_D_test = 0.0f;
 
@@ -210,7 +204,7 @@ void Class_Gimbal::Output()
     float now_yaw_mm = Update_Yaw_Transform_From_Screw();
 
     //限制距离
-    const float yaw_limit_guard_mm = 200.0f;
+    const float yaw_limit_guard_mm = 220.0f;
 
     // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
     // Motor_Yaw.Set_Target_Omega_Radian(test_yaw_omega);
@@ -224,21 +218,25 @@ void Class_Gimbal::Output()
     // Motor_Yaw.PID_Angle.Set_K_D(Motor_Yaw_Angle_D_test);
 
 /*----------------前置赋值------------------*/
-    if(minipc_flag == 1)
+    if(Yaw_Calibrated == true)//校准完成后才允许切换到MINIPC模式
     {
-        Set_Gimbal_Control_Type(Gimbal_Control_Type_MINIPC);
-    }
-    else if(minipc_flag == 0)
-    {
-        if(Yaw_Calibrated)
+        if(minipc_flag == 1)
         {
-            Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+            Set_Gimbal_Control_Type(Gimbal_Control_Type_MINIPC);
         }
-        else
+        else if(minipc_flag == 0)
         {
-            Set_Gimbal_Control_Type(Gimbal_Control_Type_YAW_UNCALIBRATION);
+            if(Yaw_Calibrated)
+            {
+             Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+            }
+            else
+            {
+                Set_Gimbal_Control_Type(Gimbal_Control_Type_YAW_UNCALIBRATION);
+            }
         }
     }
+    
 /*---------------------------------*/
 
     if (Gimbal_Control_Type == Gimbal_Control_Type_DISABLE)
@@ -260,12 +258,12 @@ void Class_Gimbal::Output()
 
         if (Yaw_Calibrated)
         {
-            // 到达丝杆行程边界后，禁止继续朝越界方向运动
-            if (now_yaw_mm <= (0.0f + yaw_limit_guard_mm) && yaw_omega_cmd < 0.0f)
+            // 将运动范围限制在左侧区间 [5, yaw_limit_guard_mm]
+            if (now_yaw_mm <= 5.0f && yaw_omega_cmd < 0.0f)
             {
                 yaw_omega_cmd = 0.0f;
             }
-            if (now_yaw_mm >= (Yaw_Screw_Total_Travel_mm - yaw_limit_guard_mm) && yaw_omega_cmd > 0.0f)
+            if (now_yaw_mm >= yaw_limit_guard_mm && yaw_omega_cmd > 0.0f)
             {
                 yaw_omega_cmd = 0.0f;
             }
