@@ -404,6 +404,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>allow_debug</ItemText>
         </Ww>
+        <Ww>
+          <count>51</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>test_servo_claw</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>

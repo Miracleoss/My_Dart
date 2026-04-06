@@ -80,7 +80,6 @@ enum Enum_Reload_Control_Type
 {
     Reload_Control_Type_UNCALIBRATED = 0, // 没校准完
     Reload_Control_Type_INIT,             // 校准完的初始状态
-    Reload_Control_Type_WAITING,          //等待上膛滑块到位
     Reload_Control_Type_PUSHING,          // 上弹推进过程
     Reload_Control_Type_RETRACTING,       // 换弹机构回退过程（给发射机构让路）
     Reload_Control_Type_HOLD,             // 保持当前角度不动状态
@@ -163,25 +162,6 @@ public:
 };
 
 /**
- * @brief Specialized, 有限自动机->换弹机构->直线电机校准状态机
- *
- */
-class Class_FSM_Reload_Linear_Calibration : public Class_FSM
-{
-public:
-    Class_Booster *Booster;
-
-    float Torque_Threshold = 1050.0f;
-    float speed = 20.0f;
-
-    float Angle_Forward = 0.0f;
-    float Angle_Backward = 0.0f;
-
-    void Linear_Calibration_TIM_Status_PeriodElapsedCallback();
-    float Linear_Map_Position(float curr_angle, float angle_start, float angle_end, float max_length);
-};
-
-/**
  * @brief Specialized, 发射机构类
  *
  */
@@ -204,9 +184,6 @@ public:
     Class_FSM_Pull_Calibration FSM_Pull_Calibration;
     friend class Class_FSM_Pull_Calibration;
 
-    // 换弹机构直线电机校准
-    Class_FSM_Reload_Linear_Calibration FSM_Reload_Linear_Calibration;
-
     // 裁判系统
     Class_Referee *Referee;
     // 上位机
@@ -214,7 +191,8 @@ public:
 
     // 270°舵机->撒放器
     Class_Servo Servo_Trigger;
-    Class_Servo Servo_Reload;
+    // 270°舵机->三路夹爪，索引0/1/2对应一号/二号/三号
+    Class_Servo Servo_Claw[3];
 
     // 拉力机
     Class_TensionMeter TensionMeter = Class_TensionMeter(0x01);
@@ -227,7 +205,6 @@ public:
 
     // 换弹电机
     Class_DJI_Motor_GM6020 Motor_Reload_Angle;
-    Class_DJI_Motor_C610 Motor_Reload_Linear;
 
     void Pull_Tension_Control(bool is_first_run);
 
@@ -246,7 +223,6 @@ public:
     inline float Get_Target_position_pull();
     inline float Get_Now_position_push();
     inline float Get_Now_position_pull();
-    inline float Get_Now_position_reload_linear();
 
     inline void Set_Booster_Control_Type(Enum_Booster_Control_Type __Booster_Control_Type);
     inline void Set_Shooting_Control_Type(Enum_Shooting_Control_Type __Shooting_Control_Type);
@@ -295,6 +271,10 @@ protected:
     /*----------------------------servo----------------------------------*/
     float tirrger_fire_angle = 260.0f; // 舵机发射角度
     float tirrger_reset_angle = 120.0f; // 舵机复位角度
+
+    // 索引0/1/2对应一号/二号/三号夹爪
+    float claw_close_angle[3] = {114.0f, 114.0f, 115.0f}; // 夹爪闭合角度
+    float claw_open_angle[3] = {70.0f, 70.0f, 70.0f}; // 夹爪张开角度s
 
     float reload_lift_angle = 220.0f; // 舵机换弹抬起角度
     float reload_drop_angle = 18.0f;  // 舵机换弹放下角度
@@ -398,11 +378,6 @@ inline float Class_Booster::Get_Now_position_push()
 inline float Class_Booster::Get_Now_position_pull()
 {
     return (now_position_pull);
-}
-
-inline float Class_Booster::Get_Now_position_reload_linear()
-{
-    return (now_position_reload_linear);
 }
 
 /**

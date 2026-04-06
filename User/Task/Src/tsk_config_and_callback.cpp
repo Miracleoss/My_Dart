@@ -241,11 +241,11 @@ void Gimbal_Device_CAN1_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             chariot.Booster.Motor_Push_R.CAN_RxCpltCallback(CAN_RxMessage->Data);
         }
         break;
-        case(0x204):
-        {
-            chariot.Booster.Motor_Reload_Linear.CAN_RxCpltCallback(CAN_RxMessage->Data);
-        }
-        break;
+        // case(0x204):
+        // {
+        //     chariot.Booster.Motor_Reload_Linear.CAN_RxCpltCallback(CAN_RxMessage->Data);
+        // }
+        // break;
         case(0x205):
         {
             chariot.Booster.Motor_Reload_Angle.CAN_RxCpltCallback(CAN_RxMessage->Data);
@@ -526,7 +526,7 @@ void Task1ms_TIM5_Callback()
     if(start_flag==1)
     {
         #ifdef GIMBAL
-        //chariot.FSM_Alive_Control.Reload_TIM_Status_PeriodElapsedCallback();
+        // chariot.FSM_Alive_Control.Reload_TIM_Status_PeriodElapsedCallback();
         #endif
         chariot.TIM_Calculate_PeriodElapsedCallback();
         
@@ -624,7 +624,7 @@ extern "C" void Task_Init()
     #endif
 
     //定时器循环任务
-    TIM_Init(&htim4, Task100us_TIM4_Callback);
+    // TIM_Init(&htim4, Task100us_TIM4_Callback);
     TIM_Init(&htim5, Task1ms_TIM5_Callback);
 
     /********************************* 设备层初始化 *********************************/
@@ -637,7 +637,7 @@ extern "C" void Task_Init()
 
     /********************************* 使能调度时钟 *********************************/
 
-    //HAL_TIM_Base_Start_IT(&htim4);
+    // HAL_TIM_Base_Start_IT(&htim4);
     HAL_TIM_Base_Start_IT(&htim5);
 }
 

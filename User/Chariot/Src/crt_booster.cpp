@@ -15,9 +15,6 @@
 
 /* Private macros ------------------------------------------------------------*/
 
-int a,b,c,d;
-volatile int e,f,g,h;
-
 int time_test_pushing = 0;
 
 float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 241.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
@@ -67,7 +64,6 @@ float push_target_tolerance = 0.006f;
 // 校准是否完成相关标志位
 bool Push_Calibration_Finished = false;
 bool Pull_Calibration_Finished = false;
-bool Reload_Linear_Calibration_Finished = false;
 
 // 是否允许发射相关标志位
 // bool Loading_Slider_Ready; // 上膛滑块机构就位
@@ -194,22 +190,22 @@ inline void Stop_Push_By_Omega_Zero(Class_Booster *booster)
     booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
 }
 
-inline int Get_Safe_Reload_Profile_Index(int fired_count)
-{
-    if (fired_count < 0)
-    {
-        reload_profile_index_clamp_count++;
-        return 0;
-    }
+// inline int Get_Safe_Reload_Profile_Index(int fired_count)
+// {
+//     if (fired_count < 0)
+//     {
+//         reload_profile_index_clamp_count++;
+//         return 0;
+//     }
 
-    if (fired_count >= kReloadProfileCount)
-    {
-        reload_profile_index_clamp_count++;
-        return kReloadProfileCount - 1;
-    }
+//     if (fired_count >= kReloadProfileCount)
+//     {
+//         reload_profile_index_clamp_count++;
+//         return kReloadProfileCount - 1;
+//     }
 
-    return fired_count;
-}
+//     return fired_count;
+// }
 } // namespace
 /*-----------------------------------------------*/
 
@@ -255,30 +251,6 @@ float Class_FSM_Push_Calibration::Linear_Map_Position(float curr_angle, float an
 }
 
 float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float angle_start, float angle_end, float max_length)
-{
-    // 防止分母为0（极其罕见的情况，但为了安全）
-    if (fabs(angle_end - angle_start) < 0.001f)
-    {
-        return 0.0f;
-    }
-
-    // 1. 计算归一化比例 (Ratio 0.0 ~ 1.0)
-    // 公式: (x - min) / (max - min)
-    float ratio = (curr_angle - angle_start) / (angle_end - angle_start);
-
-    // 2. 安全限幅 (Clamping)
-    // 这一步非常重要：如果当前角度因为惯性稍微超过了校准值，
-    // 不限幅会导致 PID 计算出的误差反向剧增，引发震荡。
-    if (ratio < 0.0f)
-        ratio = 0.0f;
-    if (ratio > 1.0f)
-        ratio = 1.0f;
-
-    // 3. 映射到物理长度
-    return ratio * max_length;
-}
-
-float Class_FSM_Reload_Linear_Calibration::Linear_Map_Position(float curr_angle, float angle_start, float angle_end, float max_length)
 {
     // 防止分母为0（极其罕见的情况，但为了安全）
     if (fabs(angle_end - angle_start) < 0.001f)
@@ -417,7 +389,7 @@ void Class_FSM_Push_Calibration::Push_Calibration_TIM_Status_PeriodElapsedCallba
         Booster->Motor_Push_L.Set_Transform_Angle(now_position);
         Booster->Motor_Push_R.Set_Transform_Angle(now_position);
 
-        if (Push_Calibration_Finished && Pull_Calibration_Finished && Reload_Linear_Calibration_Finished)
+        if (Push_Calibration_Finished && Pull_Calibration_Finished)
         {
             Booster->Set_Booster_Control_Type(Booster_Control_Type_NORMAL);
         }
@@ -507,94 +479,11 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
         Booster->Motor_Pull.Set_Transform_Angle(now_position);
 
 
-        if (Push_Calibration_Finished && Pull_Calibration_Finished && Reload_Linear_Calibration_Finished)
+        if (Push_Calibration_Finished && Pull_Calibration_Finished)
         {
             Booster->Set_Booster_Control_Type(Booster_Control_Type_NORMAL);
         }
     }
-    }
-}
-
-void Class_FSM_Reload_Linear_Calibration::Linear_Calibration_TIM_Status_PeriodElapsedCallback()
-{
-    Status[Now_Status_Serial].Time++;
-
-    // 自己接着编写状态转移函数
-    switch (Now_Status_Serial)
-    {
-    case (0): // 向前堵转
-    {
-        Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-        Booster->Motor_Reload_Linear.Set_Target_Omega_Radian(-speed);
-
-        if (fabs(Booster->Motor_Reload_Linear.Get_Now_Torque()) > Torque_Threshold)
-        {
-            Set_Status(1);
-        }
-    }
-    break;
-    case (1): // 前侧检测
-    {
-        if (Status[Now_Status_Serial].Time > 100)
-        {
-            Angle_Forward = Booster->Motor_Reload_Linear.Get_Now_Angle();
-            Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-            Booster->Motor_Reload_Linear.Set_Target_Omega_Radian(0.0f);
-            Set_Status(2);
-        }
-        else if (fabs(Booster->Motor_Reload_Linear.Get_Now_Torque()) < Torque_Threshold)
-        {
-            Set_Status(0);
-        }
-    }
-    break;
-    case (2): // 向后堵转
-    {
-
-        Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-        Booster->Motor_Reload_Linear.Set_Target_Omega_Radian(speed);
-
-        if (fabs(Booster->Motor_Reload_Linear.Get_Now_Torque()) > Torque_Threshold)
-        {
-            Set_Status(3);
-        }
-    }
-    break;
-    case (3): // 后侧检测
-    {
-        if (Status[Now_Status_Serial].Time > 100)
-        {
-            Angle_Backward = Booster->Motor_Reload_Linear.Get_Now_Angle();
-            Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-            Booster->Motor_Reload_Linear.Set_Target_Omega_Radian(0.0f);
-            Set_Status(4);
-        }
-        else if (fabs(Booster->Motor_Reload_Linear.Get_Now_Torque()) < Torque_Threshold)
-        {
-            Set_Status(2);
-        }
-    }
-    break;
-    case (4): // 正常控制流程
-    {
-        Reload_Linear_Calibration_Finished = true;
-        Set_Status(5);
-    }
-    break;
-    case (5): // 校准检测
-    {
-        //Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        // 定义上面是1.0f最大行程 下面是0.0f最小行程
-        float now_position = Linear_Map_Position(Booster->Motor_Reload_Linear.Get_Now_Angle(), Angle_Backward, Angle_Forward, 1.0f); // 注意这里颠倒了
-        Booster->Set_Now_position_reload_linear(now_position);                                                                       // 更新当前linear电机位置
-        // 更新PID输入值
-        Booster->Motor_Reload_Linear.Set_Transform_Angle(-now_position); // 这里注意：linear电机的正反转和位置定义相反，所以要取负值？？
-        if (Push_Calibration_Finished && Pull_Calibration_Finished && Reload_Linear_Calibration_Finished)
-        {
-            Booster->Set_Booster_Control_Type(Booster_Control_Type_NORMAL);
-        }
-    }
-    break;
     }
 }
 
@@ -902,14 +791,18 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
     {
     case (Reload_Control_Type_UNCALIBRATED):
     {
-        // linear电机没校准完，不管
+
         // angle电机不用校准，一开始必须要保持在初始位置
         Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
 
         Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
-        // 舵机在一定角度   
-        Booster->Servo_Reload.Set_Target_Angle(Booster->reload_lift_angle);
+
+        // 三个夹爪舵机在闭合角度
+        for (uint8_t i = 0; i < 3; i++)
+        {
+            Booster->Servo_Claw[i].Set_Target_Angle(Booster->claw_close_angle[i]);
+        }
 
         if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL) // 校准完成
         {
@@ -921,14 +814,11 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
     {
         // 一开始的Enum_Reload_Status在初始化的时候就设置为FINISHED状态
         // 保持电机在初始位置
-        Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Reload_Linear.Set_Target_Radian(-Booster->init_position_reload_linear);// 注意：这个电机的正反转和位置定义相反，所以要取负值
         Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
 
         Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
         // 舵机在一定角度
-        Booster->Servo_Reload.Set_Target_Angle(Booster->reload_lift_angle);
 
         if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL     
         && (dart_fired_count - last_dart_fired_count > 0) 
@@ -938,18 +828,6 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             // 换弹状态设置为：换弹中...
             Booster->Set_Reload_Status(Reload_Status_RELOADING);
             // 进入下一状态
-            Set_Status(Reload_Control_Type_WAITING);
-        }
-    }
-    break;
-    case (Reload_Control_Type_WAITING):
-    {
-        // 等待状态：只做状态切换，具体动作放到 PUSHING 中按顺序执行
-        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
-        && Booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED
-        && Referee_Allow_Shoot
-        )
-        {
             Set_Status(Reload_Control_Type_PUSHING);
         }
     }
@@ -966,11 +844,10 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             pushing_stage = 0;
             pushing_servo_drop_time = 0;
             (void)Consume_PB3_Press_Event(); // 清旧事件，避免跨状态误触发
-            const int reload_profile_index = Get_Safe_Reload_Profile_Index(dart_fired_count);
 
             // // 换弹角度电机转动40度
             // Booster->target_position_reload_angle += 40.0f * PI / 180.0f;
-            Booster->target_position_reload_angle = GM6020_angle_RELOAD[reload_profile_index] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
+            Booster->target_position_reload_angle = GM6020_angle_RELOAD[dart_fired_count] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
         }
         // Stage 0: Push先下压到位（位置 / PB3电平 / PB3边沿 任一满足）
         if (pushing_stage == 0)
@@ -998,34 +875,21 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             Booster->Motor_Reload_Angle.Set_Target_Radian(Booster->target_position_reload_angle);
 
             if (pushing_stage == 1
-                && fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.003f)
+                && (fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.003f)|| Is_PB3_Triggered_Level_Or_Edge()) // 这里的条件是：角度电机到位或者触碰到微动开关（以防万一角度电机因为某些原因没有准确到位）
             {
                 time2_test_pushing++;
                 // Stage 2: 6020到位后舵机动作
-                Booster->Servo_Reload.Set_Target_Angle(Booster->reload_drop_angle);
+                Booster->Servo_Claw[last_dart_fired_count].Set_Target_Angle(Booster->claw_open_angle[last_dart_fired_count]);
+
                 pushing_servo_drop_time = Status[Now_Status_Serial].Time;
                 pushing_stage = 2;
             }
         }
 
-        // Stage 3: 舵机动作后延时，再让 linear 前进
-        if (pushing_stage == 2
-            && (Status[Now_Status_Serial].Time - pushing_servo_drop_time) > 750)
-        {
-            pushing_stage = 3;
-        }
-
-        if (pushing_stage >= 3)
-        {
-            Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            Booster->Motor_Reload_Linear.Set_Target_Radian(-0.08f); // 直线电机前进往下压
-        }
-
         if (Is_Booster_Normal(Booster)
         && Is_Shooting_Finished(Booster)
         && Referee_Allow_Shoot
-        && pushing_stage >= 3
-        && fabs(Booster->Get_Now_position_reload_linear() - 0.08f) < 0.05f /*达到直线电机前进位置*/ ) 
+        && pushing_stage >= 2) 
         {
             // 离开前复位标志位，供下次使用
             reload_servo_flag_drop = 0;//好像没用？  别删
@@ -1036,43 +900,27 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
     break;
     case (Reload_Control_Type_RETRACTING):
     {
-        /*----------------------------------------------*/
-        // 直线电机后退返回初始位置
-        Booster->Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Reload_Linear.Set_Target_Radian(-Booster->init_position_reload_linear); // 注意：这个电机的正反转和位置定义相反，所以要取负值
-
-        // 1. 触发舵机动作
-        if (fabs(Booster->Get_Now_position_reload_linear() - Booster->init_position_reload_linear) < 0.01f && reload_servo_flag_lift == 0) // 达到直线电机初始位置
+        //两个动作同步：夹爪闭合 + 角度电机继续转动
+        if (Status[Now_Status_Serial].Time == 1)
         {
-            reload_servo_flag_lift = 1;
-            reload_servo_lift_time = Status[Now_Status_Serial].Time;
-            Booster->Servo_Reload.Set_Target_Angle(Booster->reload_lift_angle); // 舵机抬起
-        }
-        /*----------------发现这里不延时也可以，只要直线电机到位即可-------------------*/
-        // 2. 延时结束 -> 执行一次加法 -> 标记为状态2
-        if (Status[Now_Status_Serial].Time > reload_servo_lift_time + 400  && reload_servo_flag_lift == 1) // 这里暂时使用延时 如果用总线舵机可以用串口接收数据回传 用fab比较误差值来判断
-        {
-            const int reload_profile_index = Get_Safe_Reload_Profile_Index(dart_fired_count);
-            // 这里的代码只会在 flag 从 1 变 2 的瞬间执行一次
-
-            Booster->Servo_Reload.Set_Target_Angle(Booster->reload_lift_angle); // 舵机抬起
-
-            // 换弹角度电机再次转动80度
-            // Booster->target_position_reload_angle += 80.0f * PI / 180.0f;
-            Booster->target_position_reload_angle = GM6020_angle_ELUDE[reload_profile_index] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
-            // 切换到第2阶段：防止重复加，并开始电机控制
             reload_servo_flag_lift = 2;
+            reload_servo_lift_time = Status[Now_Status_Serial].Time;
+
+            for (uint8_t i = 0; i < 3; i++)
+            {
+                Booster->Servo_Claw[i].Set_Target_Angle(Booster->claw_close_angle[i]);
+            }
+
+            Booster->target_position_reload_angle = GM6020_angle_ELUDE[dart_fired_count] - 0.5f * PI / 180.0f;
         }
-        // 3. 持续控制电机 (处于状态2时)
+
         if (reload_servo_flag_lift == 2)
         {
             Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
             Booster->Motor_Reload_Angle.Set_Target_Radian(Booster->target_position_reload_angle);
         }
 
-        // 以上的逻辑是：先让直线电机回到初始位置，再让舵机抬起，等待舵机抬起完成后再让角度电机转回初始位置
-
-        // 4. 判断到位退出
+        // 角度电机到位后退出
         if (Is_Booster_Normal(Booster)
         && Is_Shooting_Finished(Booster)
         /*&& Referee_Allow_Shoot*/ 
@@ -1141,12 +989,6 @@ float Motor_Pull_Omega_test_I = 145.0f;
 float Motor_Pull_Angle_P_test = 2200.0f;
 float Motor_Pull_Angle_I_test = 0.0f;
 
-// 2006换弹直线电机
-float Motor_Reload_C610_Omega_P_test = 600.0f;
-float Motor_Reload_C610_Omega_I_test = 400.0f;
-float Motor_Reload_C610_Anlge_P_test = 170.0f;
-float Motor_Reload_C610_Anlge_I_test = 0.0f;
-
 // 6020换弹角度电机
 float Motor_Reload_6020_Omega_P_test = 925.0f;
 float Motor_Reload_6020_Omega_I_test = 2400.0f;
@@ -1174,14 +1016,16 @@ void Class_Booster::Init()
     FSM_Pull_Calibration.Booster = this;
     FSM_Pull_Calibration.Init(6, 0);
 
-    FSM_Reload_Linear_Calibration.Booster = this;
-    FSM_Reload_Linear_Calibration.Init(6, 0);
     // 舵机
     Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 270);
     Servo_Trigger.Set_Target_Angle(tirrger_fire_angle);
 
-    Servo_Reload.Init(&htim2, TIM_CHANNEL_3, 270);
-    Servo_Reload.Set_Target_Angle(reload_lift_angle); // 暂时没写
+    Servo_Claw[0].Init(&htim2, TIM_CHANNEL_3, 270);
+    Servo_Claw[0].Set_Target_Angle(claw_close_angle[0]);
+    Servo_Claw[1].Init(&htim1, TIM_CHANNEL_1, 270);
+    Servo_Claw[1].Set_Target_Angle(claw_close_angle[1]);
+    Servo_Claw[2].Init(&htim1, TIM_CHANNEL_3, 270);
+    Servo_Claw[2].Set_Target_Angle(claw_close_angle[2]);
 
     // 拉力电机
     Motor_Pull.PID_Angle.Init(Motor_Pull_Angle_P_test, Motor_Pull_Angle_I_test, 0.0f, 0.0f, 5.0f * PI, 130.0f * PI);
@@ -1197,11 +1041,6 @@ void Class_Booster::Init()
     Motor_Push_R.PID_Angle.Init(Motor_Push_Angle_P_test, Motor_Push_Angle_I_test, 0.0f, 0.0f, 5.0f * PI, 150.0f * PI);
     Motor_Push_R.PID_Omega.Init(Motor_R_test_P, Motor_R_test_I, 0.0f, 0.0f, Motor_Push_R.Get_Output_Max() * 0.5f, Motor_Push_R.Get_Output_Max());
     Motor_Push_R.Init(&hfdcan1, DJI_Motor_ID_0x203, DJI_Motor_Control_Method_OMEGA, 1.0f);
-
-    // 换弹电机直线
-    Motor_Reload_Linear.PID_Angle.Init(Motor_Reload_C610_Anlge_P_test, Motor_Reload_C610_Anlge_I_test, 0.0f, 0.0f, 5.0f * PI, 150.0f * PI);
-    Motor_Reload_Linear.PID_Omega.Init(Motor_Reload_C610_Omega_P_test, Motor_Reload_C610_Omega_I_test, 0.0f, 0.0f, Motor_Reload_Linear.Get_Output_Max() * 0.5f, Motor_Reload_Linear.Get_Output_Max());
-    Motor_Reload_Linear.Init(&hfdcan1, DJI_Motor_ID_0x204, DJI_Motor_Control_Method_OMEGA);
 
     // 换弹电机角度
     Motor_Reload_Angle.Init(&hfdcan1, DJI_Motor_ID_0x205, DJI_Motor_Control_Method_ANGLE);
@@ -1221,8 +1060,12 @@ float test_b = 3.0f;
 // float aaaaaaa = 22.0f;
 float Target_test_b_pull = 0.5f;
 
+float test_servo_claw = 70.0f;
+
 void Class_Booster::Output()
 {
+    Servo_Claw[2].Set_Target_Angle(test_servo_claw);
+
     // Servo_Reload.Set_Target_Angle(aaaaaaa);
     // // 下面是测试代码，正式使用时请删除
     // if(testtnum == 0)
@@ -1350,7 +1193,6 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     PD7_GPIO = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_SET ? 1 : 0;
 
     //调试代码
-
     PE15_GPIO = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_15) == GPIO_PIN_SET ? 1 : 0;
 
     if(enable_booster_flag == 1)
@@ -1364,9 +1206,6 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     // 拉力校准
     FSM_Pull_Calibration.Pull_Calibration_TIM_Status_PeriodElapsedCallback();
 
-    // 直线电机校准
-    FSM_Reload_Linear_Calibration.Linear_Calibration_TIM_Status_PeriodElapsedCallback();
-
     // 换弹状态机
     FSM_Reload.Reload_TIM_Status_PeriodElapsedCallback();
 
@@ -1378,13 +1217,11 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
         Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
         Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
-        Motor_Reload_Linear.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
         Motor_Reload_Angle.Set_DJI_Motor_Control_Method((DJI_Motor_Control_Method_TORQUE));
 
         Motor_Pull.Set_Target_Torque(0.f);
         Motor_Push_L.Set_Target_Torque(0.f);
         Motor_Push_R.Set_Target_Torque(0.f);
-        Motor_Reload_Linear.Set_Target_Torque(0.0f);
         Motor_Reload_Angle.Set_Target_Torque(0.0f);
     }
 
@@ -1395,7 +1232,6 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     Motor_Push_L.TIM_PID_PeriodElapsedCallback();
     Motor_Push_R.TIM_PID_PeriodElapsedCallback();
     Motor_Reload_Angle.TIM_PID_PeriodElapsedCallback();
-    Motor_Reload_Linear.TIM_PID_PeriodElapsedCallback();
 }
 
 /************************ COPYRIGHT(C) USTC-ROBOWALKER **************************/

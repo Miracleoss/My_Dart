@@ -18,6 +18,10 @@
 int PB11_GPIO = 0;
 int PB10_GPIO = 0;
 
+
+float test_yaw_angle_mm = 100.0f;
+
+
 // PB11 中断锁存：按下一次即记住，直到状态机消费（Yaw 微动开关）
 static volatile bool pb11_press_event_latched = false;
 volatile uint32_t pb11_exti_irq_count = 0;
@@ -157,6 +161,8 @@ void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback
         {
             Gimbal->Yaw_Calibrated = true;
             Gimbal->Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
+            Gimbal->Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+            Gimbal->Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
         }
      }
      break;
@@ -197,10 +203,11 @@ void Class_Gimbal::Init()
  *
  */
 // float test_yaw_omega = -5.0f;
-float test_yaw_angle_mm = 100.0f;
+
 
 int my_allow = 0;
 int minipc_flag = 0;
+int normal_to_minipc_delay_cnt = 0;
 
 void Class_Gimbal::Output()
 {
@@ -245,19 +252,38 @@ void Class_Gimbal::Output()
 
     if (Gimbal_Control_Type == Gimbal_Control_Type_DISABLE)
     {
+        normal_to_minipc_delay_cnt = 0;
         // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         // Motor_Yaw.Set_Target_Omega_Radian(0.0f);
     }
     else if(Gimbal_Control_Type == Gimbal_Control_Type_NORMAL)
     {
-        if(my_allow)
+        if (minipc_flag == 0)
         {
-            Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
+            if (normal_to_minipc_delay_cnt < 9000)
+            {
+                normal_to_minipc_delay_cnt++;
+            }
+            if (normal_to_minipc_delay_cnt >= 9000)
+            {
+                minipc_flag = 1;
+            }
         }
+        else
+        {
+            normal_to_minipc_delay_cnt = 0;
+        }
+
+        // if(my_allow)
+        // {
+        //     Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        //     Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
+        // }
+        
     }
     else if (Gimbal_Control_Type == Gimbal_Control_Type_MINIPC)
     {
+        normal_to_minipc_delay_cnt = 0;
         float yaw_omega_cmd = MiniPC_Yaw_Direction * MiniPC_Target_Yaw_Omega;
 
         if (Yaw_Calibrated)
