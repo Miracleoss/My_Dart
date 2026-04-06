@@ -364,8 +364,8 @@ void TIM_CAN_PeriodElapsedCallback()
     {
         mod5 = 0;
         // // CAN1->Booster
-        CAN_Send_Data(&hfdcan1, 0x200, CAN1_0x200_Tx_Data, 8); // BOOST电机 按照0x200 ID 发送 可控制多个电机
-        CAN_Send_Data(&hfdcan1, 0x1ff, CAN1_0x1ff_Tx_Data, 8); // RELOAD 6020电机 按照0x1ff ID 发送 可控制多个电机
+        // CAN_Send_Data(&hfdcan1, 0x200, CAN1_0x200_Tx_Data, 8); // BOOST电机 按照0x200 ID 发送 可控制多个电机
+        // CAN_Send_Data(&hfdcan1, 0x1ff, CAN1_0x1ff_Tx_Data, 8); // RELOAD 6020电机 按照0x1ff ID 发送 可控制多个电机
 
         // //CAN2->Gimbal 
         CAN_Send_Data(&hfdcan2, 0x200, CAN2_0x200_Tx_Data, 8); //yaw电机 按照0x200 ID 发送 

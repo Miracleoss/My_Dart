@@ -130,9 +130,13 @@ void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback
         // 进入该状态第一帧清除旧事件，避免跨状态误触发
         if(Status[Now_Status_Serial].Time == 1)
         {
-            (void)Consume_PB11_Press_Event();
+           (void)Consume_PB11_Press_Event();
         }
-        if(Consume_PB11_Press_Event())//微动开关触发
+
+        bool evt = Consume_PB11_Press_Event();
+        bool pressed = (PB11_GPIO == 1); 
+        //微动开关 事件+电平触发
+        if (evt && pressed) 
         {
             Gimbal->Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
             Gimbal->Motor_Yaw.Set_Target_Omega_Radian(0.0f);
