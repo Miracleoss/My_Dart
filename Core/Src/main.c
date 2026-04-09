@@ -28,11 +28,64 @@
 #include "usb_device.h"
 #include "gpio.h"
 
+
+int testlez = 0;
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 //#include "arm_math.h"
 #include "tsk_config_and_callback.h"
 /* USER CODE END Includes */
+#include "stm32h7xx.h"  // 假设已包含标准外设库头文件
+typedef struct {
+uint8_t por_rst   : 1;  // Power-On Reset
+uint8_t pin_rst   : 1;  // NRST Pin Reset
+uint8_t bor_rst   : 1;  // Brown-Out Reset
+uint8_t sw_rst    : 1;  // Software Reset (SYSRESETREQ)
+uint8_t iwdg_rst  : 1;  // Independent Watchdog Reset
+uint8_t wwdg_rst  : 1;  // Window Watchdog Reset
+uint8_t illegal_stby : 1; // Illegal Stop/Standby Entry
+uint8_t obl_rst   : 1;  // Option Byte Load Reset
+} rcc_reset_flags_t;
+/**
+* @brief 读取并解析 RCC 复位状态寄存器
+* @return 解析后的复位标志结构体
+*/
+rcc_reset_flags_t RCC_GetResetSource(void)
+{
+uint32_t rsr_val = RCC->RSR;
+rcc_reset_flags_t flags = {0};
+flags.por_rst      = (rsr_val & RCC_RSR_PORRSTF)  ? 1U : 0U;
+flags.pin_rst      = (rsr_val & RCC_RSR_PINRSTF)  ? 1U : 0U;
+flags.bor_rst      = (rsr_val & RCC_RSR_BORRSTF)  ? 1U : 0U;
+flags.sw_rst       = (rsr_val & RCC_RSR_SFTRSTF)  ? 1U : 0U;
+flags.illegal_stby = (rsr_val & RCC_RSR_LPWRRSTF) ? 1U : 0U;
+return flags;
+}
+/**
+* @brief 清除所有 RCC 复位标志
+* @note 必须在读取 RCC->RSR 后调用，否则可能丢失新复位事件
+*/
+void RCC_ClearResetFlags(void)
+{
+RCC->RSR = RCC_RSR_RMVF;  // 直接写入 RMVF 位（BIT16）
+}
+/**
+* @brief 初始化阶段复位诊断（示例）
+*/
+void System_Reset_Diagnosis(void)
+{
+rcc_reset_flags_t rst_flags = RCC_GetResetSource();
+// 输出复位源日志（实际项目中替换为 UART/ITM/SWO 输出）
+if (rst_flags.por_rst)   { testlez = 1; }
+if (rst_flags.pin_rst)   { testlez = 2; }
+if (rst_flags.bor_rst)   { testlez = 3; }
+if (rst_flags.sw_rst)    { testlez = 4; }
+if (rst_flags.iwdg_rst)  { testlez = 5; }
+if (rst_flags.wwdg_rst)  { testlez = 6; }
+if (rst_flags.illegal_stby) { testlez = 7; }
+// 清除标志，避免下次启动重复报告
+RCC_ClearResetFlags();
+}
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
@@ -110,12 +163,15 @@ int main(void)
   MX_TIM4_Init();
   MX_UART8_Init();
   MX_UART9_Init();
-  MX_IWDG1_Init();
+  //MX_IWDG1_Init();
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  System_Reset_Diagnosis();
   Task_Init();
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */

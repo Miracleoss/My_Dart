@@ -368,7 +368,7 @@ void TIM_CAN_PeriodElapsedCallback()
         CAN_Send_Data(&hfdcan1, 0x1ff, CAN1_0x1ff_Tx_Data, 8); // RELOAD 6020电机 按照0x1ff ID 发送 可控制多个电机
 
         // //CAN2->Gimbal 
-        // CAN_Send_Data(&hfdcan2, 0x200, CAN2_0x200_Tx_Data, 8); //yaw电机 按照0x200 ID 发送 
+        CAN_Send_Data(&hfdcan2, 0x200, CAN2_0x200_Tx_Data, 8); //yaw电机 按照0x200 ID 发送 
 
         //CAN3->MINIPC
         CAN_Send_Data(&hfdcan3, 0x100, CAN3_MiniPC_Tx_Data_C, 8); //MINIC  按照0x100 ID 发送 

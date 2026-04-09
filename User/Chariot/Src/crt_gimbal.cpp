@@ -258,21 +258,21 @@ void Class_Gimbal::Output()
     }
     else if(Gimbal_Control_Type == Gimbal_Control_Type_NORMAL)
     {
-        if (minipc_flag == 0)
-        {
-            if (normal_to_minipc_delay_cnt < 9000)
-            {
-                normal_to_minipc_delay_cnt++;
-            }
-            if (normal_to_minipc_delay_cnt >= 9000)
-            {
-                minipc_flag = 1;
-            }
-        }
-        else
-        {
-            normal_to_minipc_delay_cnt = 0;
-        }
+        // if (minipc_flag == 0)
+        // {
+        //     if (normal_to_minipc_delay_cnt < 9000)
+        //     {
+        //         normal_to_minipc_delay_cnt++;
+        //     }
+        //     if (normal_to_minipc_delay_cnt >= 9000)
+        //     {
+        //         minipc_flag = 1;
+        //     }
+        // }
+        // else
+        // {
+        //     normal_to_minipc_delay_cnt = 0;
+        // }
 
         // if(my_allow)
         // {

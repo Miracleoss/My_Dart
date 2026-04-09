@@ -20,6 +20,7 @@ int time_test_pushing = 0;
 float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 241.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {198.0f * PI / 180.0f, 316.0f * PI / 180.0f, 435.0f * PI / 180.0f, 559.0f * PI / 180.0f};
 
+int aasasa = 0;
 
 // float GM6020_angle_1_ELUDE = 0.0f;
 // float GM6020_angle_2_ELUDE = 0.0f;
@@ -152,61 +153,6 @@ bool Consume_PD7_Press_Event()
     return has_event;
 }
 
-namespace
-{
-constexpr int kReloadProfileCount = static_cast<int>(sizeof(GM6020_angle_RELOAD) / sizeof(GM6020_angle_RELOAD[0]));
-volatile uint32_t reload_profile_index_clamp_count = 0;
-
-inline bool Is_Booster_Normal(Class_Booster *booster)
-{
-    return booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL;
-}
-
-inline bool Is_Reload_Finished(Class_Booster *booster)
-{
-    return booster->Get_Reload_Status() == Reload_Status_FINISHED;
-}
-
-inline bool Is_Shooting_Finished(Class_Booster *booster)
-{
-    return booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED;
-}
-
-inline bool Is_PB3_Triggered_Level_Or_Edge()
-{
-    return (PB3_GPIO == 1) || Consume_PB3_Press_Event();
-}
-
-inline bool Is_PD7_Triggered_Level_Or_Edge()
-{
-    return (PD7_GPIO == 1) || Consume_PD7_Press_Event();
-}
-
-inline void Stop_Push_By_Omega_Zero(Class_Booster *booster)
-{
-    booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-    booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
-    booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
-    booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
-}
-
-// inline int Get_Safe_Reload_Profile_Index(int fired_count)
-// {
-//     if (fired_count < 0)
-//     {
-//         reload_profile_index_clamp_count++;
-//         return 0;
-//     }
-
-//     if (fired_count >= kReloadProfileCount)
-//     {
-//         reload_profile_index_clamp_count++;
-//         return kReloadProfileCount - 1;
-//     }
-
-//     return fired_count;
-// }
-} // namespace
 /*-----------------------------------------------*/
 
 /* Private types -------------------------------------------------------------*/
@@ -534,7 +480,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
             bool init_push_ready_or_switch =
                 (fabs(Booster->Get_Now_position_push() - 0.95f) < push_target_tolerance) ||
-                Is_PD7_Triggered_Level_Or_Edge();
+                ((PD7_GPIO == 1) || Consume_PD7_Press_Event());
 
             // 到位或触发前端微动开关后立即锁位，防止继续顶压
             if (init_push_ready_or_switch && init_push_reached_time < 0)
@@ -544,13 +490,16 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
                 // Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
                 // Booster->Motor_Push_L.Set_Target_Radian(hold_push_pos_init-0.08f);// 这里可以微调一下位置，确保更稳妥地触碰到微动开关
                 // Booster->Motor_Push_R.Set_Target_Radian(hold_push_pos_init-0.08f);
-                Stop_Push_By_Omega_Zero(Booster);
+                Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+                Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+                Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
+                Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
                 init_push_reached_time = 1;//手动设置为正数1
             }
         }
 
         // 转到 READY_PRE 状态的条件：大状态是Booster_Control_Type_NORMAL(校准完成)
-        if (Is_Booster_Normal(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         && Referee_Allow_Shoot
         && (is_reloading || init_push_reached_time > 0)
         ) 
@@ -585,7 +534,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         }
 
         //跑到最低点
-        push_ready_or_switch = Is_PB3_Triggered_Level_Or_Edge();
+        push_ready_or_switch = ((PB3_GPIO == 1) || Consume_PB3_Press_Event());
 
         // 条件是触碰到微动开关
         if (push_ready_or_switch && ready_pre_push_reached_time < 0)
@@ -598,7 +547,10 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
             // Booster->Motor_Push_L.Set_Target_Radian(hold_push_pos1 + 0.003f);// 这里可以微调一下位置，确保更稳妥地触碰到微动开关
             // Booster->Motor_Push_R.Set_Target_Radian(hold_push_pos1 + 0.003f);
 
-            Stop_Push_By_Omega_Zero(Booster);
+            Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+            Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+            Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
+            Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
             Booster->Servo_Trigger.Set_Target_Angle(Booster->tirrger_reset_angle); // 舵机扣住
             ready_pre_push_reached_time = Status[Now_Status_Serial].Time;// 记录上膛滑块到位的时间戳
         }
@@ -608,10 +560,10 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         (ready_pre_push_reached_time > 0) &&
         ((Status[Now_Status_Serial].Time - ready_pre_push_reached_time) > 1200); 
 
-        if (Is_Booster_Normal(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         && ready_pre_done
         /*&& Booster->Get_Now_position_push() > 0.9f*/
-        && Is_Reload_Finished(Booster)
+        && Booster->Get_Reload_Status() == Reload_Status_FINISHED
         && Referee_Allow_Shoot) 
         {
         Set_Status(Shooting_Control_Type_READY_PRE2);
@@ -649,21 +601,24 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
         bool push_top_ready_or_switch = 
         // (fabs(Booster->Get_Now_position_push() - 0.95f) < push_target_tolerance) ||
-        Is_PD7_Triggered_Level_Or_Edge();
+        ((PD7_GPIO == 1) || Consume_PD7_Press_Event());
         // 条件是到达位置或者触碰到前端微动开关，触发后立即锁位，防止继续顶压
         if (push_top_ready_or_switch && ready_pre2_push_reached_time < 0)
         {
-            Stop_Push_By_Omega_Zero(Booster);
+            Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+            Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+            Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
+            Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
 
             ready_pre2_push_reached_time = Status[Now_Status_Serial].Time;
         }
         
 
-        if (Is_Booster_Normal(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         && Referee_Allow_Shoot
         && ready_pre2_push_reached_time > 0 // 到位或触发微动开关后才允许进入下一状态
         && fabs(Booster->Get_Now_position_pull() - Booster->target_position_pull) < push_target_tolerance // 拉力位置到位的条件，可以微调
-        && Is_Reload_Finished(Booster))
+        && Booster->Get_Reload_Status() == Reload_Status_FINISHED)
         {
             Set_Status(Shooting_Control_Type_READY);
 
@@ -714,15 +669,15 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // }
 
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Pull.Set_Target_Radian(0.2f);
+        Booster->Motor_Pull.Set_Target_Radian(0.9f);
 
         // 发射条件：上膛滑块就位，整体booster处于Normal状态
-        if (Is_Booster_Normal(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         /*&& (is_reloading || ready_push_reached_time > 0)*/
         /*&& fabs(Booster->now_tension_value - Booster->target_tension_value) < 100.0f //单位g*/
         /*&& tension_in_range_time_ms >= 200 // 拉力稳定满足条件至少100ms*/
-        && fabs(Booster->Get_Now_position_pull() - 0.2f) < push_target_tolerance // 拉力位置到位的条件，可以微调
-        && Is_Reload_Finished(Booster) // 换弹完成状态
+        && fabs(Booster->Get_Now_position_pull() - 0.9f) < push_target_tolerance // 拉力位置到位的条件，可以微调
+        && Booster->Get_Reload_Status() == Reload_Status_FINISHED // 换弹完成状态
         && Referee_Allow_Shoot 
         /*&& test_allow_fire == 1*/)
         {
@@ -768,7 +723,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
         // 在此状态卡住，等待裁判系统允许 + 新换弹完成 token（一次性）
         if (Referee_Allow_Shoot
-        && Is_Reload_Finished(Booster)
+        && Booster->Get_Reload_Status() == Reload_Status_FINISHED
         && reload_done_token > last_consumed_reload_done_token)
         {
             // 消费 token，避免同一次换弹被重复放行
@@ -845,9 +800,9 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             pushing_servo_drop_time = 0;
             (void)Consume_PB3_Press_Event(); // 清旧事件，避免跨状态误触发
 
-            // // 换弹角度电机转动40度
+            // // 更新换弹电机角度 将在下面执行角度环控制
             // Booster->target_position_reload_angle += 40.0f * PI / 180.0f;
-            Booster->target_position_reload_angle = GM6020_angle_RELOAD[dart_fired_count] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
+            Booster->target_position_reload_angle = GM6020_angle_RELOAD[last_dart_fired_count] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
         }
         // Stage 0: Push先下压到位（位置 / PB3电平 / PB3边沿 任一满足）
         if (pushing_stage == 0)
@@ -858,11 +813,14 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             Booster->Motor_Push_R.Set_Target_Omega_Radian(-240.f);
 
             bool push_bottom_ready_or_switch =
-                Is_PB3_Triggered_Level_Or_Edge();
+                ((PB3_GPIO == 1) || Consume_PB3_Press_Event());
 
             if (push_bottom_ready_or_switch)
             {
-                Stop_Push_By_Omega_Zero(Booster);
+                Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+                Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+                Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
+                Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
                 pushing_stage = 1;
             }
         }
@@ -875,7 +833,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             Booster->Motor_Reload_Angle.Set_Target_Radian(Booster->target_position_reload_angle);
 
             if (pushing_stage == 1
-                && (fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.003f)|| Is_PB3_Triggered_Level_Or_Edge()) // 这里的条件是：角度电机到位或者触碰到微动开关（以防万一角度电机因为某些原因没有准确到位）
+                && (fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.003f)) 
             {
                 time2_test_pushing++;
                 // Stage 2: 6020到位后舵机动作
@@ -885,11 +843,16 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
                 pushing_stage = 2;
             }
         }
-
-        if (Is_Booster_Normal(Booster)
-        && Is_Shooting_Finished(Booster)
+        if (pushing_stage == 2
+            && (Status[Now_Status_Serial].Time - pushing_servo_drop_time) > 2000)
+        {
+            pushing_stage = 3;
+        }
+        
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
+        && Booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED
         && Referee_Allow_Shoot
-        && pushing_stage >= 2) 
+        && pushing_stage >= 3) 
         {
             // 离开前复位标志位，供下次使用
             reload_servo_flag_drop = 0;//好像没用？  别删
@@ -911,7 +874,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
                 Booster->Servo_Claw[i].Set_Target_Angle(Booster->claw_close_angle[i]);
             }
 
-            Booster->target_position_reload_angle = GM6020_angle_ELUDE[dart_fired_count] - 0.5f * PI / 180.0f;
+            Booster->target_position_reload_angle = GM6020_angle_ELUDE[last_dart_fired_count] - 0.5f * PI / 180.0f;
         }
 
         if (reload_servo_flag_lift == 2)
@@ -921,8 +884,8 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
         }
 
         // 角度电机到位后退出
-        if (Is_Booster_Normal(Booster)
-        && Is_Shooting_Finished(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
+        && Booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED
         /*&& Referee_Allow_Shoot*/ 
         && reload_servo_flag_lift == 2 // 确保已经更新过目标了 
         && fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.0025f/* 已经到达了位置 */)
@@ -930,6 +893,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             // // 离开前复位标志位，供下次使用
             reload_servo_flag_lift = 0;
             reload_servo_lift_time = 0;
+
             Set_Status(Reload_Control_Type_HOLD); // 进下一阶段
         }
     }
@@ -940,10 +904,11 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
         reload_servo_flag_lift = 0;
         reload_servo_lift_time = 0;
 
-        static uint32_t hold_enter_referee_rise_cnt = 0;// 记录进入 HOLD 状态时裁判系统允许发射的计数值
         if (Status[Now_Status_Serial].Time == 1) 
         {
-            hold_enter_referee_rise_cnt = referee_allow_rise_cnt;
+            aasasa ++;//test
+            // 更新上一时刻的数量
+            last_dart_fired_count = dart_fired_count;
         }
 
         // 换弹完成状态设置为：完成
@@ -956,13 +921,11 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
         }
 
         // 换弹完成后，等待下一次发射指令，同时监测发射动作的发生（通过发射数量的变化来判断）
-        if (Is_Booster_Normal(Booster)
-        && Is_Shooting_Finished(Booster)
+        if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
+        && Booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED
         && dart_fired_count > last_dart_fired_count /* 如果当前的发射数量比上一次记录的大（说明发射了一发）*/
-        && referee_allow_rise_cnt > hold_enter_referee_rise_cnt /*计数有新增*/ ) 
+        && Referee_Allow_Shoot) 
         {
-            // 更新上一时刻的数量
-            last_dart_fired_count = dart_fired_count;
             // 换弹状态设置为：换弹中...
             Booster->Set_Reload_Status(Reload_Status_RELOADING);
             // 进入 PUSHING 状态开始新一轮换弹
@@ -1064,8 +1027,6 @@ float test_servo_claw = 70.0f;
 
 void Class_Booster::Output()
 {
-    Servo_Claw[2].Set_Target_Angle(test_servo_claw);
-
     // Servo_Reload.Set_Target_Angle(aaaaaaa);
     // // 下面是测试代码，正式使用时请删除
     // if(testtnum == 0)
