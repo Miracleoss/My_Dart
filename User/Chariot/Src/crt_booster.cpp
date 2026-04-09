@@ -103,6 +103,8 @@ int reload_servo_lift_time = 0;
 /*解决裁判系统允许发射信号边沿检测问题 换弹 HOLD*/
 static bool referee_allow_prev = false;
 static uint32_t referee_allow_rise_cnt = 0;
+static constexpr uint32_t REFEREE_ALLOW_SHOOT_MAX_COUNT = 4;
+static bool referee_allow_overlimit_stop = false;
 
 //使能发射机构的enable_booster_flag
 uint8_t enable_booster_flag = 0;
@@ -111,6 +113,11 @@ void Update_Referee_Allow_Edge()
 {
     if (Referee_Allow_Shoot && !referee_allow_prev) {
         referee_allow_rise_cnt++;
+        if (referee_allow_rise_cnt > REFEREE_ALLOW_SHOOT_MAX_COUNT)
+        {
+            referee_allow_overlimit_stop = true;
+            Referee_Allow_Shoot = false;
+        }
     }
     referee_allow_prev = Referee_Allow_Shoot;
 }
@@ -1147,16 +1154,23 @@ void Class_Booster::Output()
  */
 void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
 {
-    //
-    Update_Referee_Allow_Edge();
-
+    
     PB3_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) == GPIO_PIN_SET ? 1 : 0;
     PD7_GPIO = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_SET ? 1 : 0;
-
     //调试代码
     PE15_GPIO = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_15) == GPIO_PIN_SET ? 1 : 0;
 
-    if(enable_booster_flag == 1)
+    //实时记录裁判系统允许发射的次数
+    Update_Referee_Allow_Edge();
+
+    bool force_stop_by_referee_limit = referee_allow_overlimit_stop || (referee_allow_rise_cnt > REFEREE_ALLOW_SHOOT_MAX_COUNT);
+    if (force_stop_by_referee_limit)
+    {
+        referee_allow_overlimit_stop = true;
+        Referee_Allow_Shoot = false;
+    }
+
+    if(enable_booster_flag == 1 && !force_stop_by_referee_limit)
     {
     // 拉力机数值更新
     // Measured_Tension = TensionMeter.Get_Tension();
@@ -1175,15 +1189,19 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     }
     else
     {
+        // disable 或 Referee_Allow_Shoot 超限时：Push/Pull 停机，6020 角度电机锁定在安全角
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
         Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
         Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_TORQUE);
-        Motor_Reload_Angle.Set_DJI_Motor_Control_Method((DJI_Motor_Control_Method_TORQUE));
+        Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
 
         Motor_Pull.Set_Target_Torque(0.f);
         Motor_Push_L.Set_Target_Torque(0.f);
         Motor_Push_R.Set_Target_Torque(0.f);
-        Motor_Reload_Angle.Set_Target_Torque(0.0f);
+
+        // 始终回到并保持在换弹初始安全角
+        Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(init_position_reload_angle);
+        target_position_reload_angle = Motor_Reload_Angle.Get_Target_Radian();
     }
 
     Output();
