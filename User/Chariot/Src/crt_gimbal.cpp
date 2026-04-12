@@ -21,6 +21,8 @@ int PB10_GPIO = 0;
 
 float test_yaw_angle_mm = 100.0f;
 
+int enable_yaw_calibration = 0;
+
 
 // PB11 中断锁存：按下一次即记住，直到状态机消费（Yaw 微动开关）
 static volatile bool pb11_press_event_latched = false;
@@ -316,7 +318,10 @@ void Class_Gimbal::TIM_Calculate_PeriodElapsedCallback()
 
     Update_MiniPC_Command();
 
-    FSM_Yaw_Calibration.Yaw_Calibration_TIM_Status_PeriodElapsedCallback();
+    if(enable_yaw_calibration == 1)
+    {
+        FSM_Yaw_Calibration.Yaw_Calibration_TIM_Status_PeriodElapsedCallback();
+    }
 
     //控制模式
     Output();

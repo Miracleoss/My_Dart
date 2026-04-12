@@ -249,7 +249,7 @@ protected:
     // bool Pull_Calibration_Finished = false;
 
     float target_position_push = 0.95f; // 校准完成后push电机目标位置
-    float target_position_pull = 0.5f;  // 校准完成后pull电机目标位置
+    float target_position_pull = 0.9f;  // 校准完成后pull电机目标位置
 
     float now_position_push = 0.0f; // 当前push电机位置
     float now_position_pull = 0.0f; // 当前pull电机位置
@@ -282,7 +282,7 @@ protected:
     /*----------------------------tension----------------------------------*/
     // 拉力相关变量
     float Measured_Tension = 0;     // 测量的拉力值
-    float Target_Tension = 34000.0f; // 目标的拉力值，单位g
+    float Target_Tension = 40000.0f; // 目标的拉力值，单位g
 
     // 拉力环相关变量
     float now_tension_value = 0.0f;                            // 当前测得的拉力值

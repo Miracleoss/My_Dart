@@ -120,7 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>M</Name>
+          <Name>?</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -163,312 +163,177 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>tttt,0x0A</ItemText>
+          <ItemText>test_allow_fire</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ttttt,0x0A</ItemText>
+          <ItemText>Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ttest</ItemText>
+          <ItemText>time_test_pushing,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>test_pp</ItemText>
+          <ItemText>dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>1</WinNumber>
-          <ItemText>test_len,0x0A</ItemText>
+          <ItemText>dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Raw_Value,0x0A</ItemText>
+          <ItemText>dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>pData,0x0A</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.Reload_Status</ItemText>
         </Ww>
         <Ww>
           <count>9</count>
           <WinNumber>1</WinNumber>
-          <ItemText>*pData</ItemText>
+          <ItemText>reload_servo_flag_lift</ItemText>
         </Ww>
         <Ww>
           <count>10</count>
           <WinNumber>1</WinNumber>
-          <ItemText>b1</ItemText>
+          <ItemText>reload_servo_lift_time</ItemText>
         </Ww>
         <Ww>
           <count>11</count>
           <WinNumber>1</WinNumber>
-          <ItemText>b2</ItemText>
+          <ItemText>reload_count</ItemText>
         </Ww>
         <Ww>
           <count>12</count>
           <WinNumber>1</WinNumber>
-          <ItemText>b3</ItemText>
+          <ItemText>PB3_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>13</count>
           <WinNumber>1</WinNumber>
-          <ItemText>b4</ItemText>
+          <ItemText>PE15_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>14</count>
           <WinNumber>1</WinNumber>
-          <ItemText>testtnum</ItemText>
+          <ItemText>enable_booster_flag</ItemText>
         </Ww>
         <Ww>
           <count>15</count>
           <WinNumber>1</WinNumber>
-          <ItemText>target_position_reload_angle</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>16</count>
           <WinNumber>1</WinNumber>
-          <ItemText>errorcoder</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>17</count>
           <WinNumber>1</WinNumber>
-          <ItemText>test_allow_fire</ItemText>
+          <ItemText>PB10_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>18</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Referee_Allow_Shoot</ItemText>
+          <ItemText>PB11_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>19</count>
           <WinNumber>1</WinNumber>
-          <ItemText>a</ItemText>
+          <ItemText>minipc_flag</ItemText>
         </Ww>
         <Ww>
           <count>20</count>
           <WinNumber>1</WinNumber>
-          <ItemText>b</ItemText>
+          <ItemText>PB11_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>21</count>
           <WinNumber>1</WinNumber>
-          <ItemText>c</ItemText>
+          <ItemText>PB10_GPIO</ItemText>
         </Ww>
         <Ww>
           <count>22</count>
           <WinNumber>1</WinNumber>
-          <ItemText>d</ItemText>
+          <ItemText>last_dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>23</count>
           <WinNumber>1</WinNumber>
-          <ItemText>e</ItemText>
+          <ItemText>dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>24</count>
           <WinNumber>1</WinNumber>
-          <ItemText>f</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>25</count>
           <WinNumber>1</WinNumber>
-          <ItemText>g</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\enable_booster_flag</ItemText>
         </Ww>
         <Ww>
           <count>26</count>
           <WinNumber>1</WinNumber>
-          <ItemText>h</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>27</count>
           <WinNumber>1</WinNumber>
-          <ItemText>time_test_waiting,0x0A</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.FSM_Reload</ItemText>
         </Ww>
         <Ww>
           <count>28</count>
           <WinNumber>1</WinNumber>
-          <ItemText>time_test_pushing,0x0A</ItemText>
+          <ItemText>aasasa</ItemText>
         </Ww>
         <Ww>
           <count>29</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dart_fired_count</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\last_dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>30</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dart_fired_count</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\dart_fired_count</ItemText>
         </Ww>
         <Ww>
           <count>31</count>
           <WinNumber>1</WinNumber>
-          <ItemText>dart_fired_count</ItemText>
+          <ItemText>hiwdg1</ItemText>
         </Ww>
         <Ww>
           <count>32</count>
           <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.Reload_Status</ItemText>
+          <ItemText>pull_test</ItemText>
         </Ww>
         <Ww>
           <count>33</count>
           <WinNumber>1</WinNumber>
-          <ItemText>reload_servo_flag_lift</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_gimbal.cpp\minipc_flag</ItemText>
         </Ww>
         <Ww>
           <count>34</count>
           <WinNumber>1</WinNumber>
-          <ItemText>reload_servo_lift_time</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
         </Ww>
         <Ww>
           <count>35</count>
           <WinNumber>1</WinNumber>
-          <ItemText>reload_count</ItemText>
+          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\enable_booster_flag</ItemText>
         </Ww>
         <Ww>
           <count>36</count>
           <WinNumber>1</WinNumber>
-          <ItemText>test123,0x0A</ItemText>
-        </Ww>
-        <Ww>
-          <count>37</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PB3_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>38</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PE15_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>39</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>enable_booster_flag</ItemText>
-        </Ww>
-        <Ww>
-          <count>40</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
-        </Ww>
-        <Ww>
-          <count>41</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
-        </Ww>
-        <Ww>
-          <count>42</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>Target_test_b_pull</ItemText>
-        </Ww>
-        <Ww>
-          <count>43</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PB10_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>44</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PB11_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>45</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>minipc_flag</ItemText>
-        </Ww>
-        <Ww>
-          <count>46</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_gimbal.cpp\my_allow</ItemText>
-        </Ww>
-        <Ww>
-          <count>47</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PB11_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>48</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>PB10_GPIO</ItemText>
-        </Ww>
-        <Ww>
-          <count>49</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>last_dart_fired_count</ItemText>
-        </Ww>
-        <Ww>
-          <count>50</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>dart_fired_count</ItemText>
-        </Ww>
-        <Ww>
-          <count>51</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
-        </Ww>
-        <Ww>
-          <count>52</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\enable_booster_flag</ItemText>
-        </Ww>
-        <Ww>
-          <count>53</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\Referee_Allow_Shoot</ItemText>
-        </Ww>
-        <Ww>
-          <count>54</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>referee_allow_rise_cnt</ItemText>
-        </Ww>
-        <Ww>
-          <count>55</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>hold_enter_referee_rise_cnt</ItemText>
-        </Ww>
-        <Ww>
-          <count>56</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.FSM_Reload</ItemText>
-        </Ww>
-        <Ww>
-          <count>57</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>aasasa</ItemText>
-        </Ww>
-        <Ww>
-          <count>58</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\last_dart_fired_count</ItemText>
-        </Ww>
-        <Ww>
-          <count>59</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>\\ZLLC_2026\../User/Chariot/Src/crt_booster.cpp\dart_fired_count</ItemText>
-        </Ww>
-        <Ww>
-          <count>60</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>RCC</ItemText>
-        </Ww>
-        <Ww>
-          <count>61</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>testlez</ItemText>
-        </Ww>
-        <Ww>
-          <count>62</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>hiwdg1</ItemText>
-        </Ww>
-        <Ww>
-          <count>63</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>pull_test</ItemText>
+          <ItemText>enable_yaw_calibration</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>
@@ -501,6 +366,16 @@
           <count>5</count>
           <WinNumber>2</WinNumber>
           <ItemText>CAN3_MiniPC_Tx_Data_C</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>rs485_rx_restart_busy_count</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.TensionMeter.Tension</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow2>
