@@ -456,7 +456,7 @@ void Task100us_TIM4_Callback()
 
     static int mod100 = 0;
     mod100++;
-    if(mod100 = 100)
+        if(mod100 == 100)
     {
         #ifdef defined(USE_DR16)
                 #ifdef DEBUG

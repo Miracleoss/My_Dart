@@ -441,6 +441,7 @@ public:
     inline float Get_Gimbal_Angle_Yaw();
     inline uint8_t Get_CAN_Command_Flag();
     inline int16_t Get_CAN_Command_Speed();
+    inline uint8_t Get_CAN_Command_Calibration();
 
     inline uint8_t Get_Target_Invincible_State();
     inline Enum_MiniPC_Chassis_Control_Mode Get_Chassis_Control_Mode();
@@ -546,12 +547,12 @@ protected:
     // CAN协议读变量
     uint8_t CAN_Command_Flag = 0;
     int16_t CAN_Command_Speed = 0;
-    uint8_t CAN_Command_Reserve = 0;
+    uint8_t CAN_Command_Calibration = 0;
 
     // CAN协议写变量
     uint8_t CAN_Feedback_Flag = 0;
     int16_t CAN_Feedback_Speed = 0;
-    uint8_t CAN_Feedback_Reserve = 0;
+    uint8_t CAN_Feedback_Calibration = 0;
 
 
     //写变量
@@ -664,6 +665,11 @@ int16_t Class_MiniPC::Get_CAN_Command_Speed()
 {
     return (CAN_Command_Speed);
 }
+
+uint8_t Class_MiniPC::Get_CAN_Command_Calibration()
+{
+    return (CAN_Command_Calibration);
+}
 /**
  * @brief 获取底盘移动控制模式
  *
@@ -719,11 +725,11 @@ void Class_MiniPC::Set_Gimbal_Now_Yaw_Angle(float __Gimbal_Now_Yaw_Angle)
     Now_Angle_Yaw = __Gimbal_Now_Yaw_Angle;
 }
 
-void Class_MiniPC::Set_CAN_Feedback(uint8_t __Flag, int16_t __Speed, uint8_t __Reserve)
+void Class_MiniPC::Set_CAN_Feedback(uint8_t __Flag, int16_t __Speed, uint8_t __Calibration)
 {
     CAN_Feedback_Flag = __Flag;
     CAN_Feedback_Speed = __Speed;
-    CAN_Feedback_Reserve = __Reserve;
+    CAN_Feedback_Calibration = __Calibration;
 }
 
 

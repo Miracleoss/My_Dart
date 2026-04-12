@@ -57,11 +57,12 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
 
       CAN_Command_Flag = can_data[0];
       CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
-      // CAN_Command_Reserve = can_data[5];
+      CAN_Command_Calibration = can_data[3];
 
       // 兼容旧接口，便于上层直接沿用现有 getter
       Data_NUC_To_MCU.Control_Type = CAN_Command_Flag;
       Data_NUC_To_MCU.MiniPC_To_Chassis_Target_Velocity_X = CAN_Command_Speed;
+      Data_NUC_To_MCU.Device_Mode = CAN_Command_Calibration;
     }
   }
 }
@@ -88,25 +89,33 @@ extern Referee_Rx_D_t CAN3_Chassis_Rx_Data_D;
 extern Referee_Rx_E_t CAN3_Chassis_Rx_Data_E;
 extern Referee_Rx_F_t CAN3_Chassis_Rx_Data_F;
 extern Referee_Rx_G_t CAN3_Chassis_Rx_Data_G;
+extern bool Push_Calibration_Finished;
+extern bool Pull_Calibration_Finished;
+extern bool Referee_Allow_Shoot;
 volatile int index = 0;
 uint8_t  test_p = 0; 
 void Class_MiniPC::Output()
 {
+  const uint8_t calibration_finished = (Push_Calibration_Finished && Pull_Calibration_Finished) ? 1u : 0u;
+  const uint8_t allow_shoot = Referee_Allow_Shoot ? 1u : 0u;
 
-  //这里测试 做一个信息的回馈
-  CAN_Feedback_Speed = CAN_Command_Speed;
-  CAN_Feedback_Flag = CAN_Command_Flag;
+  uint8_t game_started = 0u;
+  uint8_t hatch_open = 0u;
+  if (Referee != NULL)
+  {
+    game_started = (Referee->Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE) ? 1u : 0u;
+    hatch_open = (Referee->Get_Dart_Command_Status() == Referee_Data_Robot_Dart_Command_Status_OPEN) ? 1u : 0u;
+  }
 
-  //CAN通信
-  CAN3_MiniPC_Tx_Data_C[0] = CAN_FRAME_HEADER_0;
-  CAN3_MiniPC_Tx_Data_C[1] = CAN_FRAME_HEADER_1;
-  CAN3_MiniPC_Tx_Data_C[2] = CAN_Feedback_Flag;
-  CAN3_MiniPC_Tx_Data_C[3] = (uint8_t)(((uint16_t)CAN_Feedback_Speed >> 8) & 0xff);
-  CAN3_MiniPC_Tx_Data_C[4] = (uint8_t)((uint16_t)CAN_Feedback_Speed & 0xff);
-  CAN3_MiniPC_Tx_Data_C[5] = CAN_Feedback_Reserve;
-  CAN3_MiniPC_Tx_Data_C[6] = Get_CAN_MiniPC_Frame_Sum(CAN3_MiniPC_Tx_Data_C);
-  CAN3_MiniPC_Tx_Data_C[7] = Frame_Rear;
-
+  // 统一CAN协议(8字节): [0..2]上位机->下位机, [3..6]下位机->上位机, [7]保留
+  CAN3_MiniPC_Tx_Data_C[0] = CAN_Command_Flag;
+  CAN3_MiniPC_Tx_Data_C[1] = (uint8_t)(((uint16_t)CAN_Command_Speed >> 8) & 0xff);
+  CAN3_MiniPC_Tx_Data_C[2] = (uint8_t)((uint16_t)CAN_Command_Speed & 0xff);
+  CAN3_MiniPC_Tx_Data_C[3] = calibration_finished;
+  CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;
+  CAN3_MiniPC_Tx_Data_C[5] = game_started;
+  CAN3_MiniPC_Tx_Data_C[6] = hatch_open;
+  CAN3_MiniPC_Tx_Data_C[7] = 0x00;
 }
 
 /**

@@ -22,7 +22,7 @@ float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0
 
 int aasasa = 0;
 
-float pull_test = 0.25f;
+float pull_test = 0.3f;
 
 // float GM6020_angle_1_ELUDE = 0.0f;
 // float GM6020_angle_2_ELUDE = 0.0f;
@@ -658,10 +658,10 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
     break;
     case(Shooting_Control_Type_PULLRING): // 拉环状态，保持一段时间后进入发射状态
     {
-        //bool is_reloading = (Booster->Get_Reload_Status() == Reload_Status_RELOADING);
+        // bool is_reloading = (Booster->Get_Reload_Status() == Reload_Status_RELOADING);
         // static int ready_push_reached_time = -1;
 
-        // // Pull电机跑拉力环
+        // Pull电机跑拉力环
         // 如果是刚进入该状态的第一帧
         // bool first_run = (Status[Now_Status_Serial].Time == 1);
 
@@ -682,13 +682,12 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
         // 发射条件：上膛滑块就位，整体booster处于Normal状态
         if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
-        /*&& (is_reloading || ready_push_reached_time > 0)*/
-        /*&& fabs(Booster->now_tension_value - Booster->target_tension_value) < 100.0f //单位g*/
-        /*&& tension_in_range_time_ms >= 200 // 拉力稳定满足条件至少100ms*/
+        // && (is_reloading || ready_push_reached_time > 0)
+        // && fabs(Booster->now_tension_value - Booster->target_tension_value) < 100.0f //单位g
+        // && tension_in_range_time_ms >= 200 // 拉力稳定满足条件至少100ms
         && fabs(Booster->Get_Now_position_pull() - pull_test) < push_target_tolerance // 拉力位置到位的条件，可以微调
         && Booster->Get_Reload_Status() == Reload_Status_FINISHED // 换弹完成状态
-        && Referee_Allow_Shoot 
-        /*&& test_allow_fire == 1*/)
+        && Referee_Allow_Shoot )
         {
             // 发射动作：舵机转到发射角度
             Booster->Servo_Trigger.Set_Target_Angle(Booster->tirrger_fire_angle);
@@ -1183,6 +1182,8 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     }
 
     if(enable_booster_flag == 1 && !force_stop_by_referee_limit)
+    // const bool calibration_cmd_enable = (MiniPC != nullptr) && (MiniPC->Get_CAN_Command_Calibration() == 1u);
+    // if(calibration_cmd_enable && !force_stop_by_referee_limit)
     {
     // 拉力机数值更新
     // Measured_Tension = TensionMeter.Get_Tension();
