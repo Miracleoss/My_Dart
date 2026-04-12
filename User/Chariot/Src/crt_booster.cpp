@@ -18,9 +18,11 @@
 int time_test_pushing = 0;
 
 float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 241.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
-float GM6020_angle_ELUDE[4] = {198.0f * PI / 180.0f, 316.0f * PI / 180.0f, 435.0f * PI / 180.0f, 559.0f * PI / 180.0f};
+float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
 
 int aasasa = 0;
+
+float pull_test = 0.25f;
 
 // float GM6020_angle_1_ELUDE = 0.0f;
 // float GM6020_angle_2_ELUDE = 0.0f;
@@ -676,14 +678,14 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // }
 
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Pull.Set_Target_Radian(0.9f);
+        Booster->Motor_Pull.Set_Target_Radian(pull_test);
 
         // 发射条件：上膛滑块就位，整体booster处于Normal状态
         if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         /*&& (is_reloading || ready_push_reached_time > 0)*/
         /*&& fabs(Booster->now_tension_value - Booster->target_tension_value) < 100.0f //单位g*/
         /*&& tension_in_range_time_ms >= 200 // 拉力稳定满足条件至少100ms*/
-        && fabs(Booster->Get_Now_position_pull() - 0.9f) < push_target_tolerance // 拉力位置到位的条件，可以微调
+        && fabs(Booster->Get_Now_position_pull() - pull_test) < push_target_tolerance // 拉力位置到位的条件，可以微调
         && Booster->Get_Reload_Status() == Reload_Status_FINISHED // 换弹完成状态
         && Referee_Allow_Shoot 
         /*&& test_allow_fire == 1*/)
@@ -797,6 +799,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
     case (Reload_Control_Type_PUSHING):
     {
         static int pushing_stage = 0;
+        static int pushing_6020_reached_time = 0;
         static int pushing_servo_drop_time = 0;
 
         time_test_pushing++;
@@ -804,6 +807,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
         if (Status[Now_Status_Serial].Time == 1)
         {
             pushing_stage = 0;
+            pushing_6020_reached_time = 0;
             pushing_servo_drop_time = 0;
             (void)Consume_PB3_Press_Event(); // 清旧事件，避免跨状态误触发
 
@@ -811,7 +815,7 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             // Booster->target_position_reload_angle += 40.0f * PI / 180.0f;
             Booster->target_position_reload_angle = GM6020_angle_RELOAD[last_dart_fired_count] -0.5f * PI / 180.0f; // 这里预设了每发射一次，换弹角度电机增加40度，可以根据实际情况调整
         }
-        // Stage 0: Push先下压到位（位置 / PB3电平 / PB3边沿 任一满足）
+        // Stage 0: Push先下压到位（ PB3电平 / PB3边沿 任一满足）
         if (pushing_stage == 0)
         {
             Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
@@ -840,26 +844,34 @@ void Class_FSM_Reload::Reload_TIM_Status_PeriodElapsedCallback()
             Booster->Motor_Reload_Angle.Set_Target_Radian(Booster->target_position_reload_angle);
 
             if (pushing_stage == 1
-                && (fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.003f)) 
+                && (fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - Booster->target_position_reload_angle) < 0.001f)) 
             {
                 time2_test_pushing++;
-                // Stage 2: 6020到位后舵机动作
-                Booster->Servo_Claw[last_dart_fired_count].Set_Target_Angle(Booster->claw_open_angle[last_dart_fired_count]);
-
-                pushing_servo_drop_time = Status[Now_Status_Serial].Time;
+                // Stage 2: 6020到位后先记时，延时200ms再做舵机动作
+                pushing_6020_reached_time = Status[Now_Status_Serial].Time;
                 pushing_stage = 2;
             }
         }
+
         if (pushing_stage == 2
-            && (Status[Now_Status_Serial].Time - pushing_servo_drop_time) > 2000)
+            && (Status[Now_Status_Serial].Time - pushing_6020_reached_time) > 200)
         {
+            // Stage 3: 延时1500ms后舵机动作
+            Booster->Servo_Claw[last_dart_fired_count].Set_Target_Angle(Booster->claw_open_angle[last_dart_fired_count]);
+            pushing_servo_drop_time = Status[Now_Status_Serial].Time;
             pushing_stage = 3;
+        }
+
+        if (pushing_stage == 3
+            && (Status[Now_Status_Serial].Time - pushing_servo_drop_time) > 1500)
+        {
+            pushing_stage = 4;
         }
         
         if (Booster->Get_Booster_Control_Type() == Booster_Control_Type_NORMAL
         && Booster->Get_Shooting_Control_Type() == Shooting_Control_Type_SHOOTING_FINISHED
         && Referee_Allow_Shoot
-        && pushing_stage >= 3) 
+        && pushing_stage >= 4) 
         {
             // 离开前复位标志位，供下次使用
             reload_servo_flag_drop = 0;//好像没用？  别删

@@ -120,7 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name></Name>
+          <Name>O</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -465,6 +465,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>hiwdg1</ItemText>
         </Ww>
+        <Ww>
+          <count>63</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>pull_test</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
@@ -671,6 +676,11 @@
           <count>40</count>
           <WinNumber>2</WinNumber>
           <ItemText>CAN3_MiniPC_Tx_Data_C,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>41</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Booster.Motor_Reload_Angle.PID_Angle.Target</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow2>

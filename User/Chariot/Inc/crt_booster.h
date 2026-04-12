@@ -257,7 +257,7 @@ protected:
     /*----------------------------reload----------------------------------*/
 
     // 对于6020而言 由于是弧度制 所以要写成 多少多少度 // 180*pi
-    float init_position_reload_angle = 79.0f * PI / 180.0f;  // 校准完成后Angle电机初始位置
+    float init_position_reload_angle = 59.0f * PI / 180.0f;  // 校准完成后Angle电机初始位置
     float init_position_reload_linear = 0.92f; // 校准完成后Linear电机初始位置
 
     // 在初始化的时候直接先把init的值赋给target得了 方便循环赋值 上面的init不用了----------------
