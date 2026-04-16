@@ -51,14 +51,12 @@ enum Enum_Booster_Control_Type
  */
 enum Enum_Shooting_Control_Type
 {
-    Shooting_Control_Type_WAITING= 0,
-    Shooting_Control_Type_INIT,
-    Shooting_Control_Type_READY_PRE,
-    Shooting_Control_Type_READY_PRE2,
+    Shooting_Control_Type_IDLE = 0,
+    Shooting_Control_Type_DOWN_LOCK,
+    Shooting_Control_Type_RELOAD,
+    Shooting_Control_Type_PREP_FIRE,
     Shooting_Control_Type_READY,
-    Shooting_Control_Type_PULLRING,
-    Shooting_Control_Type_SHOOTING,
-    Shooting_Control_Type_SHOOTING_FINISHED,
+    Shooting_Control_Type_FIRE,
 };
 
 /*
@@ -96,7 +94,17 @@ public:
     Class_Booster *Booster;
 
     void Shooting_TIM_Status_PeriodElapsedCallback();
-    Enum_Shooting_Control_Type Shooting_Control_Type = Shooting_Control_Type_INIT;
+    Enum_Shooting_Control_Type Shooting_Control_Type = Shooting_Control_Type_IDLE;
+
+    bool isFirstShot = true;
+    bool prep_task_a_done = false;
+    bool prep_task_b_done = false;
+    bool prep_task_c_done = false;
+    bool push_top_reached = false;
+    bool pull_loop_first_run = true;
+    float prep_top_position_meter = 0.0f;
+    uint8_t reload_stage = 0;
+    uint16_t reload_drop_start_time = 0;
 
     float push_speed =  60.0f;
 };
@@ -249,7 +257,7 @@ protected:
     // bool Pull_Calibration_Finished = false;
 
     float target_position_push = 0.95f; // 校准完成后push电机目标位置
-    float target_position_pull = 0.9f;  // 校准完成后pull电机目标位置
+    float target_position_pull = 0.5f;  // 校准完成后pull电机目标位置
 
     float now_position_push = 0.0f; // 当前push电机位置
     float now_position_pull = 0.0f; // 当前pull电机位置
@@ -273,7 +281,7 @@ protected:
     float tirrger_reset_angle = 120.0f; // 舵机复位角度
 
     // 索引0/1/2对应一号/二号/三号夹爪
-    float claw_close_angle[3] = {118.0f, 118.0f, 118.0f}; // 夹爪闭合角度
+    float claw_close_angle[3] = {114.0f, 114.0f, 115.0f}; // 夹爪闭合角度
     float claw_open_angle[3] = {70.0f, 70.0f, 70.0f}; // 夹爪张开角度s
 
     float reload_lift_angle = 220.0f; // 舵机换弹抬起角度
@@ -282,7 +290,7 @@ protected:
     /*----------------------------tension----------------------------------*/
     // 拉力相关变量
     float Measured_Tension = 0;     // 测量的拉力值
-    float Target_Tension = 40000.0f; // 目标的拉力值，单位g
+    float Target_Tension = 37000.0f; // 目标的拉力值，单位g
 
     // 拉力环相关变量
     float now_tension_value = 0.0f;                            // 当前测得的拉力值
