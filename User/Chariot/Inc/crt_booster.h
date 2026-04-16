@@ -281,8 +281,8 @@ protected:
     float tirrger_reset_angle = 120.0f; // 舵机复位角度
 
     // 索引0/1/2对应一号/二号/三号夹爪
-    float claw_close_angle[3] = {114.0f, 114.0f, 115.0f}; // 夹爪闭合角度
-    float claw_open_angle[3] = {70.0f, 70.0f, 70.0f}; // 夹爪张开角度s
+    float claw_close_angle[3] = {115.0f, 120.0f, 125.0f}; // 夹爪闭合角度
+    float claw_open_angle[3] = {65.0f, 70.0f, 70.0f}; // 夹爪张开角度s
 
     float reload_lift_angle = 220.0f; // 舵机换弹抬起角度
     float reload_drop_angle = 18.0f;  // 舵机换弹放下角度

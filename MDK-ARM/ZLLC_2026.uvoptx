@@ -344,6 +344,16 @@
           <WinNumber>1</WinNumber>
           <ItemText>reload_index</ItemText>
         </Ww>
+        <Ww>
+          <count>39</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>test_servo_claw</ItemText>
+        </Ww>
+        <Ww>
+          <count>40</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>xuhao</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
