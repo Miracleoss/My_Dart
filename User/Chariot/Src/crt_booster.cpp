@@ -17,7 +17,7 @@
 
 int time_test_pushing = 0;
 
-float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 241.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
+float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 239.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
 
 int aasasa = 0;
@@ -524,7 +524,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
     constexpr float kPushBackoffDistance = 0.006f;
     constexpr float kReloadReachTolerance = 0.001f;
     constexpr float kSafeAngleTolerance = 0.002f;
-    constexpr uint16_t kReloadClawOpenDelayMs = 200;
+    constexpr uint16_t kReloadClawOpenDelayMs = 800;
     constexpr uint16_t kReloadDropDelayMs = 1500;
     constexpr uint16_t kFireHoldMs = 500;
     constexpr float kTensionReadyThreshold = 100.0f;
@@ -570,13 +570,13 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         Booster->Servo_Trigger.Set_Target_Angle(Booster->tirrger_fire_angle);//这里需要保持撒放器张开 撒放器张开才有触碰微动开关的机会
         Booster->Set_Reload_Status(Reload_Status_FINISHED);
 
-        if (isFirstShot)
-        {
-            // 6020 绝对值编码器：首发前始终锁定在初始安全角
-            Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
-            Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
-        }
+        // if (isFirstShot)
+        // {
+        //     // 6020 绝对值编码器：首发前始终锁定在初始安全角
+        //     Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        //     Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
+        //     Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
+        // }
 
         if (Status[Now_Status_Serial].Time == 1)
         {
@@ -615,12 +615,12 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
             down_lock_close_start_time = 0;
         }
 
-        if (isFirstShot)
-        {
-            Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
-            Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
-        }
+        // if (isFirstShot)
+        // {
+        //     Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        //     Booster->Motor_Reload_Angle.Set_Target_SingleTurn_Radian_Nearest(Booster->init_position_reload_angle);
+        //     Booster->target_position_reload_angle = Booster->Motor_Reload_Angle.Get_Target_Radian();
+        // }
 
         Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
@@ -899,7 +899,7 @@ void Class_Booster::Init()
 
     // 舵机
     Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 270);
-    Servo_Trigger.Set_Target_Angle(tirrger_reset_angle);
+    Servo_Trigger.Set_Target_Angle(tirrger_fire_angle);
 
     Servo_Claw[0].Init(&htim2, TIM_CHANNEL_3, 270);
     Servo_Claw[0].Set_Target_Angle(claw_close_angle[0]);

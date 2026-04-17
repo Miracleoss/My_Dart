@@ -281,7 +281,7 @@ protected:
     float tirrger_reset_angle = 120.0f; // 舵机复位角度
 
     // 索引0/1/2对应一号/二号/三号夹爪
-    float claw_close_angle[3] = {115.0f, 120.0f, 125.0f}; // 夹爪闭合角度
+    float claw_close_angle[3] = {115.0f, 120.0f, 115.0f}; // 夹爪闭合角度
     float claw_open_angle[3] = {65.0f, 70.0f, 70.0f}; // 夹爪张开角度s
 
     float reload_lift_angle = 220.0f; // 舵机换弹抬起角度
@@ -290,7 +290,7 @@ protected:
     /*----------------------------tension----------------------------------*/
     // 拉力相关变量
     float Measured_Tension = 0;     // 测量的拉力值
-    float Target_Tension = 37000.0f; // 目标的拉力值，单位g
+    float Target_Tension = 42000.0f; // 目标的拉力值，单位g
 
     // 拉力环相关变量
     float now_tension_value = 0.0f;                            // 当前测得的拉力值
