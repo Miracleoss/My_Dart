@@ -517,7 +517,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
     Status[Now_Status_Serial].Time++;
 
     constexpr uint8_t kMaxDartCount = 4;
-    constexpr uint16_t kDownLockServoCloseDelayMs = 120;
+    constexpr uint16_t kDownLockServoCloseDelayMs = 300;
     constexpr float kPushDownOmega = -240.0f;
     constexpr float kPushUpOmega = 240.0f;
     constexpr float kPushBackoffOmega = -10.0f;
@@ -822,12 +822,12 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         Booster->Motor_Reload_Angle.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Booster->Motor_Reload_Angle.Set_Target_Radian(ready_fire_angle);
 
-        const bool safe_ready = fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - ready_fire_angle) < kSafeAngleTolerance;
-        if (!safe_ready)
-        {
-            Set_Status(Shooting_Control_Type_READY);
-            break;
-        }
+        // const bool safe_ready = fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - ready_fire_angle) < kSafeAngleTolerance;
+        // if (!safe_ready)
+        // {
+        //     Set_Status(Shooting_Control_Type_READY);
+        //     break;
+        // }
 
         if (Status[Now_Status_Serial].Time == 1)
         {
