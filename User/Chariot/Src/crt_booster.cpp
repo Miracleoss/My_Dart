@@ -354,7 +354,7 @@ void Class_FSM_Push_Calibration::Push_Calibration_TIM_Status_PeriodElapsedCallba
             (void)Consume_PB3_Press_Event();
         }
         
-        if(Consume_PB3_Press_Event())//后端左侧微动开关触发
+        if(PB3_GPIO == 1 && Consume_PB3_Press_Event())//后端左侧微动开关触发
         {
             Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
