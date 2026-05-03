@@ -356,7 +356,7 @@ void Class_FSM_Push_Calibration::Push_Calibration_TIM_Status_PeriodElapsedCallba
             (void)Consume_PD7_Press_Event();
         }
         
-        if(Consume_PD7_Press_Event())//前左侧微动开关触发
+        if(PD7_GPIO == 1 || Consume_PD7_Press_Event())//前左侧微动开关触发
         {
             Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
@@ -924,7 +924,7 @@ void Class_Booster::Init()
     FSM_Pull_Calibration.Init(6, 0);
 
     // 舵机
-    Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 260);
+    Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 270);
     Servo_Trigger.Set_Target_Angle(tirrger_fire_angle);
 
     Servo_Claw[0].Init(&htim2, TIM_CHANNEL_3, 270);

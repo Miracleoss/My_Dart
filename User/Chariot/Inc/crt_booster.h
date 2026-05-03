@@ -277,7 +277,7 @@ protected:
     float now_position_reload_linear = 0.0f; // 当前linear电机位置
 
     /*----------------------------servo----------------------------------*/
-    float tirrger_fire_angle = 260.0f; // 舵机发射角度
+    float tirrger_fire_angle = 250.0f; // 舵机发射角度
     float tirrger_reset_angle = 120.0f; // 舵机复位角度
 
     // 索引0/1/2对应一号/二号/三号夹爪
