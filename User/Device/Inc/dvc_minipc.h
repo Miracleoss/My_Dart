@@ -441,7 +441,10 @@ public:
     inline float Get_Gimbal_Angle_Yaw();
     inline uint8_t Get_CAN_Command_Flag();
     inline int16_t Get_CAN_Command_Speed();
-    inline uint8_t Get_CAN_Command_Calibration();
+    inline uint8_t Get_CAN_Tx_Calibration_Finished();
+    inline uint8_t Get_CAN_Rx_Perfect_Alignment();
+    inline uint8_t Get_CAN_Tx_Game_Started();
+    inline uint8_t Get_CAN_Tx_Hatch_Open();
 
     inline uint8_t Get_Target_Invincible_State();
     inline Enum_MiniPC_Chassis_Control_Mode Get_Chassis_Control_Mode();
@@ -545,14 +548,16 @@ protected:
     float Error;
 
     // CAN协议读变量
-    uint8_t CAN_Command_Flag = 0;
-    int16_t CAN_Command_Speed = 0;
-    uint8_t CAN_Command_Calibration = 0;
+    uint8_t CAN_Command_Flag = 0;//[0] 数字一代表上位机识别到了目标
+    int16_t CAN_Command_Speed = 0;//[1-2] 速度
+    uint8_t CAN_Rx_Perfect_Alignment = 0;//[4] 上位机完美对准
 
     // CAN协议写变量
-    uint8_t CAN_Feedback_Flag = 0;
-    int16_t CAN_Feedback_Speed = 0;
-    uint8_t CAN_Feedback_Calibration = 0;
+    uint8_t CAN_Feedback_Flag = 0;//[0]回复上位机
+    int16_t CAN_Feedback_Speed = 0;//[1-2]回复上位机
+    uint8_t CAN_Calibration_Finished = 0;//[3] 下位机校准完成
+    uint8_t CAN_Tx_Game_Started = 0;//[5] 裁判系统比赛开始
+    uint8_t CAN_Tx_Hatch_Open = 0;//[6] 裁判系统发射机构舱门是否打开
 
 
     //写变量
@@ -666,9 +671,24 @@ int16_t Class_MiniPC::Get_CAN_Command_Speed()
     return (CAN_Command_Speed);
 }
 
-uint8_t Class_MiniPC::Get_CAN_Command_Calibration()
+uint8_t Class_MiniPC::Get_CAN_Tx_Calibration_Finished()
 {
-    return (CAN_Command_Calibration);
+    return (CAN_Calibration_Finished);
+}
+
+uint8_t Class_MiniPC::Get_CAN_Rx_Perfect_Alignment()
+{
+    return (CAN_Rx_Perfect_Alignment);
+}
+
+uint8_t Class_MiniPC::Get_CAN_Tx_Game_Started()
+{
+    return (CAN_Tx_Game_Started);
+}
+
+uint8_t Class_MiniPC::Get_CAN_Tx_Hatch_Open()
+{
+    return (CAN_Tx_Hatch_Open);
 }
 /**
  * @brief 获取底盘移动控制模式
@@ -729,7 +749,7 @@ void Class_MiniPC::Set_CAN_Feedback(uint8_t __Flag, int16_t __Speed, uint8_t __C
 {
     CAN_Feedback_Flag = __Flag;
     CAN_Feedback_Speed = __Speed;
-    CAN_Feedback_Calibration = __Calibration;
+    CAN_Calibration_Finished = __Calibration;
 }
 
 

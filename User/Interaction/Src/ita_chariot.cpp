@@ -61,6 +61,9 @@ void Class_Chariot::Init(float __DR16_Dead_Zone)
     FSM_Alive_Control_VT13.Init(5, 0);
 #endif
 
+    // 裁判系统
+    Referee.Init(&huart10);
+
     // 云台
     Gimbal.Init();
     Gimbal.MiniPC = &MiniPC;
@@ -68,6 +71,12 @@ void Class_Chariot::Init(float __DR16_Dead_Zone)
     // 发射机构
     Booster.Init();
     Booster.MiniPC = &MiniPC;
+
+    // 上位机离线保底备案：将MiniPC和Referee指针传递给booster自由函数
+    extern Class_MiniPC *MiniPC_For_Booster;
+    extern Class_Referee *Referee_For_Booster;
+    MiniPC_For_Booster = &MiniPC;
+    Referee_For_Booster = &Referee;
 
     // 上位机
     MiniPC.Init(&MiniPC_USB_Manage_Object, &UART8_Manage_Object, &CAN3_Manage_Object, 0x5A, 0x01);//这里的头标暂时不用

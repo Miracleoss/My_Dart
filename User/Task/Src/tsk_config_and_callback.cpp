@@ -373,7 +373,7 @@ void Ist8310_IIC3_Callback(uint8_t* Tx_Buffer, uint8_t* Rx_Buffer, uint16_t Tx_L
  * @param Buffer UART收到的消息
  * @param Length 长度
  */
-#ifdef CHASSIS
+#if defined(CHASSIS) || defined(GIMBAL)
 void Referee_UART10_Callback(uint8_t *Buffer, uint16_t Length)
 {
     chariot.Referee.UART_RxCpltCallback(Buffer,Length);
@@ -619,6 +619,8 @@ extern "C" void Task_Init()
         UART_Init(&huart8, MiniPC_UART_Callback, 56);
         //初始化拉力机RS485
         RS485_Init();
+        //裁判系统
+        UART_Init(&huart10, Referee_UART10_Callback, 128);
 
 
     #endif

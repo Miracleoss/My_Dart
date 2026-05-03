@@ -73,6 +73,9 @@ bool Pull_Calibration_Finished = false;
 bool Referee_Allow_Shoot = false; // 裁判系统允许发射
 int test_allow_fire = 0; // 测试用，允许发射标志位
 
+// 上位机离线保底发射备案
+static bool minipc_fallback_prev = false;
+
 // 已发镖数量
 // static int dart_fired_count = 0;
 // static int last_dart_fired_count = 0;
@@ -117,8 +120,31 @@ static bool shooting_cycle_active = false;
 //使能发射机构的enable_booster_flag
 uint8_t enable_booster_flag = 0;
 
+// 上位机离线保底备案：MiniPC指针（在Init时由Class_Chariot设置）
+Class_MiniPC *MiniPC_For_Booster = nullptr;
+Class_Referee *Referee_For_Booster = nullptr;
+
 void Update_Referee_Allow_Edge()
 {
+    // ============ 上位机离线保底备案 ============
+    // 条件: 上位机掉线 + 比赛已开始 + 舱门已开启 → 自动置位 Referee_Allow_Shoot
+    // 使用裁判系统实时数据（UART10直连），非上位机转发
+    if (MiniPC_For_Booster != nullptr && Referee_For_Booster != nullptr &&//空指针保护
+        MiniPC_For_Booster->Get_MiniPC_Status() == MiniPC_Status_DISABLE)
+    {
+        bool game_started = (Referee_For_Booster->Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE);
+        bool hatch_open = (Referee_For_Booster->Get_Dart_Command_Status() == Referee_Data_Robot_Dart_Command_Status_OPEN);
+        bool fallback_condition = game_started && hatch_open;
+        if (fallback_condition && !minipc_fallback_prev && Push_Calibration_Finished && Pull_Calibration_Finished)
+        {
+			//一套流程 包括 yaw跑到固定的位置 发射
+            // Referee_Allow_Shoot = true;//暂时不启用
+        }
+    }
+    minipc_fallback_prev = (MiniPC_For_Booster != nullptr &&
+                            MiniPC_For_Booster->Get_MiniPC_Status() == MiniPC_Status_DISABLE);
+
+    // ============ 正常裁判系统边沿检测 ============
     if (Referee_Allow_Shoot && !referee_allow_prev) {
         referee_allow_rise_cnt++;
         shoot_cmd_token++;
@@ -898,7 +924,7 @@ void Class_Booster::Init()
     FSM_Pull_Calibration.Init(6, 0);
 
     // 舵机
-    Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 270);
+    Servo_Trigger.Init(&htim2, TIM_CHANNEL_1, 260);
     Servo_Trigger.Set_Target_Angle(tirrger_fire_angle);
 
     Servo_Claw[0].Init(&htim2, TIM_CHANNEL_3, 270);

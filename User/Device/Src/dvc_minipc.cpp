@@ -55,14 +55,21 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
     {
       const uint8_t *can_data = CAN_Manage_Object->Rx_Buffer.Data;
 
+      // 统一8字节协议，与Output发送格式一致:
+      // [0]   Flag                上位机是否识别到目标
+      // [1-2] Speed (big-endian)  yaw角速度指令
+      // [3]   Calibration         校准完成标志位 下->上
+      // [4]   Allow_Shoot         完美识别标志位 
+      // [5]   Game_Started        比赛是否开始 下->上
+      // [6]   Hatch_Open          舱门是否打开 下->上
+      // [7]   Reserved
       CAN_Command_Flag = can_data[0];
       CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
-      CAN_Command_Calibration = can_data[3];
+      CAN_Rx_Perfect_Alignment = can_data[4];
 
       // 兼容旧接口，便于上层直接沿用现有 getter
       Data_NUC_To_MCU.Control_Type = CAN_Command_Flag;
       Data_NUC_To_MCU.MiniPC_To_Chassis_Target_Velocity_X = CAN_Command_Speed;
-      Data_NUC_To_MCU.Device_Mode = CAN_Command_Calibration;
     }
   }
 }
@@ -96,25 +103,32 @@ volatile int index = 0;
 uint8_t  test_p = 0; 
 void Class_MiniPC::Output()
 {
-  const uint8_t calibration_finished = (Push_Calibration_Finished && Pull_Calibration_Finished) ? 1u : 0u;
-  const uint8_t allow_shoot = Referee_Allow_Shoot ? 1u : 0u;
+  CAN_Calibration_Finished = (Push_Calibration_Finished && Pull_Calibration_Finished) ? 1u : 0u;
+  // const uint8_t allow_shoot = Referee_Allow_Shoot ? 1u : 0u;
 
-  uint8_t game_started = 0u;
-  uint8_t hatch_open = 0u;
+  CAN_Tx_Game_Started = 0u;
+  CAN_Tx_Hatch_Open = 0u;
   if (Referee != NULL)
   {
-    game_started = (Referee->Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE) ? 1u : 0u;
-    hatch_open = (Referee->Get_Dart_Command_Status() == Referee_Data_Robot_Dart_Command_Status_OPEN) ? 1u : 0u;
+    CAN_Tx_Game_Started = (Referee->Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE) ? 1u : 0u;
+    CAN_Tx_Hatch_Open = (Referee->Get_Dart_Command_Status() == Referee_Data_Robot_Dart_Command_Status_OPEN) ? 1u : 0u;
   }
 
-  // 统一CAN协议(8字节): [0..2]上位机->下位机, [3..6]下位机->上位机, [7]保留
-  CAN3_MiniPC_Tx_Data_C[0] = CAN_Command_Flag;
-  CAN3_MiniPC_Tx_Data_C[1] = (uint8_t)(((uint16_t)CAN_Command_Speed >> 8) & 0xff);
-  CAN3_MiniPC_Tx_Data_C[2] = (uint8_t)((uint16_t)CAN_Command_Speed & 0xff);
-  CAN3_MiniPC_Tx_Data_C[3] = calibration_finished;
-  CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;
-  CAN3_MiniPC_Tx_Data_C[5] = game_started;
-  CAN3_MiniPC_Tx_Data_C[6] = hatch_open;
+  // 统一8字节协议，与Output发送格式一致:
+  // [0]   Flag                上位机是否识别到目标
+  // [1-2] Speed (big-endian)  yaw角速度指令
+  // [3]   Calibration         校准完成标志位 下->上
+  // [4]   Allow_Shoot         完美识别标志位 
+  // [5]   Game_Started        比赛是否开始 下->上
+  // [6]   Hatch_Open          舱门是否打开 下->上
+  // [7]   Reserved
+  CAN3_MiniPC_Tx_Data_C[0] = CAN_Command_Flag;//回复上位机
+  CAN3_MiniPC_Tx_Data_C[1] = (uint8_t)(((uint16_t)CAN_Command_Speed >> 8) & 0xff);//回复上位机
+  CAN3_MiniPC_Tx_Data_C[2] = (uint8_t)((uint16_t)CAN_Command_Speed & 0xff);//回复上位机
+  CAN3_MiniPC_Tx_Data_C[3] = CAN_Calibration_Finished;//下位机校准完成标志位
+  // CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;//allow_shoot 是上位机发过来的已经完美对准 这个时候我可以发射了
+  CAN3_MiniPC_Tx_Data_C[5] = CAN_Tx_Game_Started; //裁判系统:比赛是否开始
+  CAN3_MiniPC_Tx_Data_C[6] = CAN_Tx_Hatch_Open; //裁判系统:发射机构舱门是否打开
   CAN3_MiniPC_Tx_Data_C[7] = 0x00;
 }
 
