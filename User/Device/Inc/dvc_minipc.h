@@ -442,7 +442,7 @@ public:
     inline uint8_t Get_CAN_Command_Flag();
     inline int16_t Get_CAN_Command_Speed();
     inline uint8_t Get_CAN_Tx_Calibration_Finished();
-    inline uint8_t Get_CAN_Rx_Perfect_Alignment();
+    inline uint8_t Get_CAN_Rx_MiniPC_Allow_Shoot();
     inline uint8_t Get_CAN_Tx_Game_Started();
     inline uint8_t Get_CAN_Tx_Hatch_Open();
 
@@ -550,7 +550,7 @@ protected:
     // CAN协议读变量
     uint8_t CAN_Command_Flag = 0;//[0] 数字一代表上位机识别到了目标
     int16_t CAN_Command_Speed = 0;//[1-2] 速度
-    uint8_t CAN_Rx_Perfect_Alignment = 0;//[4] 上位机完美对准
+    uint8_t CAN_Rx_MiniPC_Allow_Shoot = 0;//[4] 上位机允许发射
 
     // CAN协议写变量
     uint8_t CAN_Feedback_Flag = 0;//[0]回复上位机
@@ -676,9 +676,9 @@ uint8_t Class_MiniPC::Get_CAN_Tx_Calibration_Finished()
     return (CAN_Calibration_Finished);
 }
 
-uint8_t Class_MiniPC::Get_CAN_Rx_Perfect_Alignment()
+uint8_t Class_MiniPC::Get_CAN_Rx_MiniPC_Allow_Shoot()
 {
-    return (CAN_Rx_Perfect_Alignment);
+    return (CAN_Rx_MiniPC_Allow_Shoot);
 }
 
 uint8_t Class_MiniPC::Get_CAN_Tx_Game_Started()

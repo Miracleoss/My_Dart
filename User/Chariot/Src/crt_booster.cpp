@@ -265,13 +265,19 @@ float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float an
 // 已经通过串口读取到一拉力值
 // 使用全局变量保存，单位为kg
 // 拉力环比例系数
-float K_tension = 0.00000005f;
+float K_tension = 0.000000180f;
 // 拉力环积分系数
 float K_tension_i = 0.0f;
 // 拉力误差积分累计
 static float tension_error_integral = 0.0f;
 // 积分限幅，防止积分饱和
 static constexpr float TENSION_ERROR_INTEGRAL_LIMIT = 120000.0f;
+// 拉力目标斜坡：每次调用递增，避免阶跃
+static float ramped_target_tension = 0.0f;
+static constexpr float TENSION_RAMP_STEP = 1.9f;
+// 扣锁检测阈值：测量值超过此值说明已扣住
+static constexpr float TENSION_LATCH_THRESHOLD = 38000.0f;
+static bool tension_latched = false;
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）
  *
@@ -281,19 +287,44 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
     // 1. [关键] 首运行初始化：防止电机突然跳变
     if (is_first_run)
     {
-        // 假设 Get_Now_position_pull() 返回的是当前归一化位置(0~1)
         target_tension_position_pull = Get_Now_position_pull();
         tension_error_integral = 0.0f;
+        tension_latched = false;
     }
 
     {
-        // 读取测量值与目标值
+        // 读取测量值与最终目标
         now_tension_value = Get_Measured_Tension();
         target_tension_value = Get_Target_Tension();
 
-        float tension_error = target_tension_value - now_tension_value;
+        // 扣锁检测：力值突增说明刚扣住，立刻从当前力值开始斜坡
+        if (!tension_latched && now_tension_value >= TENSION_LATCH_THRESHOLD)
+        {
+            tension_latched = true;
+            ramped_target_tension = now_tension_value;
+            tension_error_integral = 0.0f;
+        }
 
-        //  [关键] 增加死区防止抖动
+        // 未扣锁时不做PID控制
+        if (!tension_latched)
+        {
+            return;
+        }
+
+        // 斜坡：逐步逼近最终目标，消除阶跃超调
+        float ramp_diff = target_tension_value - ramped_target_tension;
+        if (fabs(ramp_diff) > TENSION_RAMP_STEP)
+        {
+            ramped_target_tension += (ramp_diff > 0.0f) ? TENSION_RAMP_STEP : -TENSION_RAMP_STEP;
+        }
+        else
+        {
+            ramped_target_tension = target_tension_value;
+        }
+
+        float tension_error = ramped_target_tension - now_tension_value;
+
+        // 增加死区防止抖动
         if (fabs(tension_error) < TENSION_DEADZONE)
         {
             tension_error = 0.0f;
@@ -301,8 +332,8 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
 
         // 积分分离：输出已在边界且误差继续推动越界时，不继续累积积分
         const bool integral_blocked_by_saturation =
-            (target_tension_position_pull <= 0.0f && tension_error > 0.0f) ||
-            (target_tension_position_pull >= 1.0f && tension_error < 0.0f);
+            (target_tension_position_pull <= 0.05f && tension_error > 0.0f) ||
+            (target_tension_position_pull >= 0.98f && tension_error < 0.0f);
 
         if (!integral_blocked_by_saturation)
         {
@@ -321,13 +352,13 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         target_tension_position_pull -= tension_delta;
 
         // 限幅
-        if (target_tension_position_pull > 0.99f)
+        if (target_tension_position_pull > 0.98f)
         {
-            target_tension_position_pull = 0.99f;
+            target_tension_position_pull = 0.98f;
         }
-        if (target_tension_position_pull < 0.01f)
+        if (target_tension_position_pull < 0.05f)
         {
-            target_tension_position_pull = 0.01f;
+            target_tension_position_pull = 0.05f;
         }
 
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
@@ -650,11 +681,15 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
         Booster->Motor_Push_L.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Booster->Motor_Push_R.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+        //新添加pull电机动作
+        Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
 
         if (down_lock_stage == 0)
         {
             Booster->Motor_Push_L.Set_Target_Omega_Radian(kPushDownOmega);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(kPushDownOmega);
+            //新添加pull电机动作
+            Booster->Motor_Pull.Set_Target_Radian(pull_hold_after_calib_pos);
 
             if ((PB3_GPIO == 1) || Consume_PB3_Press_Event())
             {

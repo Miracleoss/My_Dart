@@ -59,13 +59,13 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
       // [0]   Flag                上位机是否识别到目标
       // [1-2] Speed (big-endian)  yaw角速度指令
       // [3]   Calibration         校准完成标志位 下->上
-      // [4]   Allow_Shoot         完美识别标志位 
+      // [4]   Allow_Shoot         上位机允许发射
       // [5]   Game_Started        比赛是否开始 下->上
       // [6]   Hatch_Open          舱门是否打开 下->上
       // [7]   Reserved
       CAN_Command_Flag = can_data[0];
       CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
-      CAN_Rx_Perfect_Alignment = can_data[4];
+      CAN_Rx_MiniPC_Allow_Shoot = can_data[4];
 
       // 兼容旧接口，便于上层直接沿用现有 getter
       Data_NUC_To_MCU.Control_Type = CAN_Command_Flag;
