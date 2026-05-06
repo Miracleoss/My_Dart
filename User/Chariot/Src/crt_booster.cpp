@@ -265,7 +265,7 @@ float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float an
 // 已经通过串口读取到一拉力值
 // 使用全局变量保存，单位为kg
 // 拉力环比例系数
-float K_tension = 0.000000180f;
+float K_tension = 0.000000110f;
 // 拉力环积分系数
 float K_tension_i = 0.0f;
 // 拉力误差积分累计
@@ -274,9 +274,9 @@ static float tension_error_integral = 0.0f;
 static constexpr float TENSION_ERROR_INTEGRAL_LIMIT = 120000.0f;
 // 拉力目标斜坡：每次调用递增，避免阶跃
 static float ramped_target_tension = 0.0f;
-static constexpr float TENSION_RAMP_STEP = 1.9f;
+static constexpr float TENSION_RAMP_STEP = 1.8f;
 // 扣锁检测阈值：测量值超过此值说明已扣住
-static constexpr float TENSION_LATCH_THRESHOLD = 38000.0f;
+static constexpr float TENSION_LATCH_THRESHOLD = 36800.0f;
 static bool tension_latched = false;
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）
@@ -575,8 +575,8 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
     constexpr uint8_t kMaxDartCount = 4;
     constexpr uint16_t kDownLockServoCloseDelayMs = 300;
-    constexpr float kPushDownOmega = -240.0f;
-    constexpr float kPushUpOmega = 240.0f;
+    constexpr float kPushDownOmega = -290.0f;
+    constexpr float kPushUpOmega = 350.0f;
     constexpr float kPushBackoffOmega = -10.0f;
     constexpr float kPushBackoffDistance = 0.006f;
     constexpr float kReloadReachTolerance = 0.001f;
