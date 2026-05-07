@@ -445,6 +445,8 @@ public:
     inline uint8_t Get_CAN_Rx_MiniPC_Allow_Shoot();
     inline uint8_t Get_CAN_Tx_Game_Started();
     inline uint8_t Get_CAN_Tx_Hatch_Open();
+    inline uint8_t Get_CAN_Tx_Shoot_Request();
+    inline void Set_CAN_Tx_Shoot_Request(uint8_t __val);
 
     inline uint8_t Get_Target_Invincible_State();
     inline Enum_MiniPC_Chassis_Control_Mode Get_Chassis_Control_Mode();
@@ -558,6 +560,7 @@ protected:
     uint8_t CAN_Calibration_Finished = 0;//[3] 下位机校准完成
     uint8_t CAN_Tx_Game_Started = 0;//[5] 裁判系统比赛开始
     uint8_t CAN_Tx_Hatch_Open = 0;//[6] 裁判系统发射机构舱门是否打开
+    uint8_t CAN_Tx_Shoot_Request = 0;//[7] 下位机向上位机申请发射
 
 
     //写变量
@@ -689,6 +692,16 @@ uint8_t Class_MiniPC::Get_CAN_Tx_Game_Started()
 uint8_t Class_MiniPC::Get_CAN_Tx_Hatch_Open()
 {
     return (CAN_Tx_Hatch_Open);
+}
+
+uint8_t Class_MiniPC::Get_CAN_Tx_Shoot_Request()
+{
+    return (CAN_Tx_Shoot_Request);
+}
+
+void Class_MiniPC::Set_CAN_Tx_Shoot_Request(uint8_t __val)
+{
+    CAN_Tx_Shoot_Request = __val;
 }
 /**
  * @brief 获取底盘移动控制模式

@@ -17,6 +17,9 @@
 
 int time_test_pushing = 0;
 
+//测试用
+int aaa_3 = 0;
+
 float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 239.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
 
@@ -143,6 +146,44 @@ void Update_Referee_Allow_Edge()
     }
     minipc_fallback_prev = (MiniPC_For_Booster != nullptr &&
                             MiniPC_For_Booster->Get_MiniPC_Status() == MiniPC_Status_DISABLE);
+
+    // ============ 上位机联合自动化发射 ============
+    // 空闲条件：校准完成 + booster使能 + 非发射中 + 非已允许 + 镖未打完
+    // 冷却：每发结束后等 300ms 再发起下一次请求
+    static uint16_t shoot_cooldown_ms = 0;
+    if (shooting_cycle_active || Referee_Allow_Shoot)
+    {
+        shoot_cooldown_ms = 0;
+    }
+    else if (shoot_cooldown_ms < 300)
+    {
+        shoot_cooldown_ms++;
+    }
+    bool cooldown_ready = (shoot_cooldown_ms >= 300);
+
+    bool is_idle_ready = Push_Calibration_Finished && Pull_Calibration_Finished
+                         && (enable_booster_flag == 1)
+                         && !shooting_cycle_active
+                         && !Referee_Allow_Shoot
+                         && (dart_fired_count < 4)
+                         && cooldown_ready;
+
+    aaa_3 = is_idle_ready;
+
+    if (MiniPC_For_Booster != nullptr)
+    {
+        // a) 发射申请：空闲时通过 CAN TX [7] 告诉上位机"我准备好了"
+        MiniPC_For_Booster->Set_CAN_Tx_Shoot_Request(is_idle_ready ? 1u : 0u);
+
+        // b) 上位机上升沿检测：CAN RX [4] 从 0→1 时置位 Referee_Allow_Shoot 一次
+        static bool prev_allow_shoot_from_minipc = false;
+        bool curr_allow_shoot = (MiniPC_For_Booster->Get_CAN_Rx_MiniPC_Allow_Shoot() != 0);
+        if (curr_allow_shoot && !prev_allow_shoot_from_minipc)
+        {
+            Referee_Allow_Shoot = true;
+        }
+        prev_allow_shoot_from_minipc = curr_allow_shoot;
+    }
 
     // ============ 正常裁判系统边沿检测 ============
     if (Referee_Allow_Shoot && !referee_allow_prev) {
@@ -575,8 +616,8 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
     constexpr uint8_t kMaxDartCount = 4;
     constexpr uint16_t kDownLockServoCloseDelayMs = 300;
-    constexpr float kPushDownOmega = -290.0f;
-    constexpr float kPushUpOmega = 350.0f;
+    constexpr float kPushDownOmega = -320.0f;
+    constexpr float kPushUpOmega = 370.0f;
     constexpr float kPushBackoffOmega = -10.0f;
     constexpr float kPushBackoffDistance = 0.006f;
     constexpr float kReloadReachTolerance = 0.001f;
@@ -801,7 +842,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
             Booster->Motor_Push_L.Set_Target_Omega_Radian(kPushUpOmega);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(kPushUpOmega);
 
-            if ((PD7_GPIO == 1) || Consume_PD7_Press_Event())
+            if ((PD7_GPIO == 1) && Consume_PD7_Press_Event())
             {
                 Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
                 Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);

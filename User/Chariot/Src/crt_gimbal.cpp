@@ -52,6 +52,8 @@ bool Consume_PB11_Press_Event()
 
 /* Private variables ---------------------------------------------------------*/
 
+extern bool Referee_Allow_Shoot;
+
 /* Private function declarations ---------------------------------------------*/
 
 /**
@@ -286,6 +288,15 @@ void Class_Gimbal::Output()
     else if (Gimbal_Control_Type == Gimbal_Control_Type_MINIPC)
     {
         normal_to_minipc_delay_cnt = 0;
+
+        // 发射期间冻结 yaw 轴：停止使用上位机速度数据，速度环给 0
+        if (Referee_Allow_Shoot)
+        {
+            Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
+            Motor_Yaw.Set_Target_Omega_Radian(0.0f);
+            return;
+        }
+
         float yaw_omega_cmd = MiniPC_Yaw_Direction * MiniPC_Target_Yaw_Omega;
 
         if (Yaw_Calibrated)

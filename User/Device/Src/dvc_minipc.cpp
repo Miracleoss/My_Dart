@@ -18,7 +18,9 @@
 /* private types -------------------------------------------------------------*/
 
 /* private variables ---------------------------------------------------------*/
-
+// 测试用
+int aaa_1 = 0;
+int aaa_2 = 0;
 /* private function declarations ---------------------------------------------*/
 
 /* function prototypes -------------------------------------------------------*/
@@ -66,6 +68,10 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
       CAN_Command_Flag = can_data[0];
       CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
       CAN_Rx_MiniPC_Allow_Shoot = can_data[4];
+
+      //测试用
+      aaa_1 = CAN_Command_Flag;
+      aaa_2 = CAN_Rx_MiniPC_Allow_Shoot;
 
       // 兼容旧接口，便于上层直接沿用现有 getter
       Data_NUC_To_MCU.Control_Type = CAN_Command_Flag;
@@ -129,7 +135,7 @@ void Class_MiniPC::Output()
   // CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;//allow_shoot 是上位机发过来的已经完美对准 这个时候我可以发射了
   CAN3_MiniPC_Tx_Data_C[5] = CAN_Tx_Game_Started; //裁判系统:比赛是否开始
   CAN3_MiniPC_Tx_Data_C[6] = CAN_Tx_Hatch_Open; //裁判系统:发射机构舱门是否打开
-  CAN3_MiniPC_Tx_Data_C[7] = 0x00;
+  CAN3_MiniPC_Tx_Data_C[7] = CAN_Tx_Shoot_Request; //下位机向上位机申请发射
 }
 
 /**
