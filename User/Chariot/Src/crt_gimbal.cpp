@@ -19,7 +19,7 @@ int PB11_GPIO = 0;
 int PB10_GPIO = 0;
 
 
-float test_yaw_angle_mm = 180.0f;
+float test_yaw_angle_mm = 100.0f;
 
 int enable_yaw_calibration = 0;
 

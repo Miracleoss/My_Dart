@@ -306,7 +306,7 @@ float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float an
 // 已经通过串口读取到一拉力值
 // 使用全局变量保存，单位为kg
 // 拉力环比例系数
-float K_tension = 0.000000110f;
+float K_tension = 0.000000100f;
 // 拉力环积分系数
 float K_tension_i = 0.0f;
 // 拉力误差积分累计
