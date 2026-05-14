@@ -306,7 +306,7 @@ float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float an
 // 已经通过串口读取到一拉力值
 // 使用全局变量保存，单位为kg
 // 拉力环比例系数
-float K_tension = 0.000000100f;
+float K_tension = 0.000000070f;
 // 拉力环积分系数
 float K_tension_i = 0.0f;
 // 拉力误差积分累计
@@ -317,7 +317,7 @@ static constexpr float TENSION_ERROR_INTEGRAL_LIMIT = 120000.0f;
 static float ramped_target_tension = 0.0f;
 static constexpr float TENSION_RAMP_STEP = 1.8f;
 // 扣锁检测阈值：测量值超过此值说明已扣住
-static constexpr float TENSION_LATCH_THRESHOLD = 36800.0f;
+static constexpr float TENSION_LATCH_THRESHOLD = 36000.0f;
 static bool tension_latched = false;
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）

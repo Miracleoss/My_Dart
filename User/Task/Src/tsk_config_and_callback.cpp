@@ -620,7 +620,7 @@ extern "C" void Task_Init()
         //初始化拉力机RS485
         RS485_Init();
         //裁判系统
-        UART_Init(&huart10, Referee_UART10_Callback, 128);
+        UART_Init(&huart1, Referee_UART10_Callback, 128);
 
 
     #endif

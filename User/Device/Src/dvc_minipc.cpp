@@ -116,7 +116,14 @@ void Class_MiniPC::Output()
   CAN_Tx_Hatch_Open = 0u;
   if (Referee != NULL)
   {
-    CAN_Tx_Game_Started = (Referee->Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE) ? 1u : 0u;
+    /*值	含义
+      0	未开始
+      1	准备阶段
+      2	自检阶段
+      3	5秒倒计时
+      4	对战中
+      5	结算阶段*/
+    CAN_Tx_Game_Started = static_cast<uint8_t>(Referee->Get_Game_Stage());
     CAN_Tx_Hatch_Open = (Referee->Get_Dart_Command_Status() == Referee_Data_Robot_Dart_Command_Status_OPEN) ? 1u : 0u;
   }
 
@@ -133,7 +140,7 @@ void Class_MiniPC::Output()
   CAN3_MiniPC_Tx_Data_C[2] = (uint8_t)((uint16_t)CAN_Command_Speed & 0xff);//回复上位机
   CAN3_MiniPC_Tx_Data_C[3] = CAN_Calibration_Finished;//下位机校准完成标志位
   // CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;//allow_shoot 是上位机发过来的已经完美对准 这个时候我可以发射了
-  CAN3_MiniPC_Tx_Data_C[5] = CAN_Tx_Game_Started; //裁判系统:比赛是否开始
+  CAN3_MiniPC_Tx_Data_C[5] = CAN_Tx_Game_Started; //裁判系统:比赛状态
   CAN3_MiniPC_Tx_Data_C[6] = CAN_Tx_Hatch_Open; //裁判系统:发射机构舱门是否打开
   CAN3_MiniPC_Tx_Data_C[7] = CAN_Tx_Shoot_Request; //下位机向上位机申请发射
 }

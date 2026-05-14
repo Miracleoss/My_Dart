@@ -106,6 +106,7 @@ public:
     inline float Get_Target_Yaw_Angle();
     inline float Get_Target_Pitch_Angle();
     inline Enum_Gimbal_Control_Type Get_Gimbal_Control_Type();
+    inline bool Get_Yaw_Calibrated();
 
     inline void Set_Gimbal_Control_Type(Enum_Gimbal_Control_Type __Gimbal_Control_Type);
     inline void Set_Target_Yaw_Angle(float __Target_Yaw_Angle);
@@ -210,6 +211,10 @@ float Class_Gimbal::Get_Target_Pitch_Angle()
 Enum_Gimbal_Control_Type Class_Gimbal::Get_Gimbal_Control_Type()
 {
     return (Gimbal_Control_Type);
+}
+bool Class_Gimbal::Get_Yaw_Calibrated()
+{
+    return (Yaw_Calibrated);
 }
 
 /**

@@ -18,6 +18,11 @@ extern UART_HandleTypeDef huart5;
 /* Private types -------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
+extern int enable_yaw_calibration;
+extern uint8_t enable_booster_flag;
+extern int minipc_flag;
+extern bool Push_Calibration_Finished;
+extern bool Pull_Calibration_Finished;
 
 /* Private function declarations ---------------------------------------------*/
 
@@ -62,7 +67,7 @@ void Class_Chariot::Init(float __DR16_Dead_Zone)
 #endif
 
     // 裁判系统
-    Referee.Init(&huart10);
+    Referee.Init(&huart1);
 
     // 云台
     Gimbal.Init();
@@ -505,6 +510,41 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
     // DWT_SysTimeUpdate();
 
 #elif defined(GIMBAL)
+
+    // ---- 上电自动启动状态机 ----
+    {
+        static uint8_t startup_state = 0;
+        static uint32_t startup_tick = 0;
+
+        switch (startup_state)
+        {
+        case 0: // 等待5s，让各模块初始化稳定
+            startup_tick++;
+            if (startup_tick >= 5000)
+            {
+                startup_state = 1;
+            }
+            break;
+        case 1: // 同时启动yaw校准和booster校准
+            enable_yaw_calibration = 1;
+            enable_booster_flag = 1;
+            // 等待yaw校准完成 && booster推拉校准都完成
+            if (Gimbal.Get_Yaw_Calibrated() && Push_Calibration_Finished && Pull_Calibration_Finished)
+            {
+                startup_state = 2;
+            }
+            break;
+        case 2: // 校准完成，等待裁判系统进入对战阶段
+            if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE)
+            {
+                startup_state = 3;
+            }
+            break;
+        case 3: // 对战阶段，开启MINIPC通信
+            minipc_flag = 1;
+            break;
+        }
+    }
 
     // 各个模块的分别解算
     Gimbal.TIM_Calculate_PeriodElapsedCallback();
