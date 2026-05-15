@@ -120,7 +120,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>	</Name>
+          <Name>E</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -394,6 +394,11 @@
           <count>48</count>
           <WinNumber>1</WinNumber>
           <ItemText>\\ZLLC_2026\../User/Task/Src/tsk_config_and_callback.cpp\chariot.Referee.Event_Dart_Remaining_Time.Dart_Remaining_Time</ItemText>
+        </Ww>
+        <Ww>
+          <count>49</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>PA5_GPIO</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>

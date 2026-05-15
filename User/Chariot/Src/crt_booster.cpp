@@ -41,6 +41,7 @@ float pull_test = 0.25f;
 int test123 = 0;
 int PB3_GPIO = 0;
 int PD7_GPIO = 0;
+int PA5_GPIO = 0;
 int PE15_GPIO = 0;
 
 // PB3 中断锁存：按下一次即记住，直到状态机消费
@@ -52,6 +53,11 @@ volatile uint32_t pb3_event_consumed_count = 0;
 static volatile bool pd7_press_event_latched = false;
 volatile uint32_t pd7_exti_irq_count = 0;
 volatile uint32_t pd7_event_consumed_count = 0;
+
+// PA5 中断锁存：拉力电机向上微动开关
+static volatile bool pa5_press_event_latched = false;
+volatile uint32_t pa5_exti_irq_count = 0;
+volatile uint32_t pa5_event_consumed_count = 0;
 
 bool push_ready_or_switch = 0;
 
@@ -236,6 +242,25 @@ bool Consume_PD7_Press_Event()
     return has_event;
 }
 
+extern "C" void Booster_On_PA5_Exti(void)
+{
+    pa5_exti_irq_count++;
+    pa5_press_event_latched = true;
+}
+
+bool Consume_PA5_Press_Event()
+{
+    __disable_irq();
+    bool has_event = pa5_press_event_latched;
+    pa5_press_event_latched = false;
+    __enable_irq();
+    if (has_event)
+    {
+        pa5_event_consumed_count++;
+    }
+    return has_event;
+}
+
 /*-----------------------------------------------*/
 
 /* Private types -------------------------------------------------------------*/
@@ -346,9 +371,11 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
             tension_error_integral = 0.0f;
         }
 
-        // 未扣锁时不做PID控制
+        // 未扣锁时保持预紧位置
         if (!tension_latched)
         {
+            Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+            Motor_Pull.Set_Target_Radian(0.8f);
             return;
         }
 
@@ -428,7 +455,7 @@ void Class_FSM_Push_Calibration::Push_Calibration_TIM_Status_PeriodElapsedCallba
             (void)Consume_PD7_Press_Event();
         }
         
-        if(PD7_GPIO == 1 || Consume_PD7_Press_Event())//前左侧微动开关触发
+        if(PD7_GPIO == 1 && Consume_PD7_Press_Event())//前左侧微动开关触发
         {
             Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
@@ -452,7 +479,7 @@ void Class_FSM_Push_Calibration::Push_Calibration_TIM_Status_PeriodElapsedCallba
             (void)Consume_PB3_Press_Event();
         }
         
-        if(PB3_GPIO == 1 && Consume_PB3_Press_Event())//后端左侧微动开关触发
+        if(PB3_GPIO == 1 || Consume_PB3_Press_Event())//后端左侧微动开关触发
         {
             Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
             Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
@@ -527,66 +554,53 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     // 自己接着编写状态转移函数
     switch (Now_Status_Serial)
     {
-    case (0): // 向前堵转
+    case (0): // 向上校准 -> 微动开关触发
     {
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Booster->Motor_Pull.Set_Target_Omega_Radian(speed);
 
-        if (fabs(Booster->Motor_Pull.Get_Now_Torque()) > Torque_Threshold)
-        {
-            Set_Status(1);
-        }
-    }
-    break;
-    case (1): // 前侧检测
-    {
-        if (Status[Now_Status_Serial].Time > 100)
+        if (PA5_GPIO == 1 || Consume_PA5_Press_Event()) // PA5 微动开关触发
         {
             Angle_Forward = Booster->Motor_Pull.Get_Now_Angle();
             Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
             Booster->Motor_Pull.Set_Target_Omega_Radian(0.0f);
-            Set_Status(2);
-        }
-        else if (fabs(Booster->Motor_Pull.Get_Now_Torque()) < Torque_Threshold)
-        {
-            Set_Status(0);
+            Set_Status(1);
         }
     }
     break;
-    case (2): // 向后堵转
+    case (1): // 向后堵转
     {
-
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         Booster->Motor_Pull.Set_Target_Omega_Radian(-speed);
 
         if (fabs(Booster->Motor_Pull.Get_Now_Torque()) > Torque_Threshold)
         {
-            Set_Status(3);
+            Set_Status(2);
         }
     }
     break;
-    case (3): // 后侧检测
+    case (2): // 后侧检测
     {
         if (Status[Now_Status_Serial].Time > 100)
         {
             Angle_Backward = Booster->Motor_Pull.Get_Now_Angle();
             Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
             Booster->Motor_Pull.Set_Target_Omega_Radian(0.0f);
-            Set_Status(4);
+            Set_Status(3);
         }
         else if (fabs(Booster->Motor_Pull.Get_Now_Torque()) < Torque_Threshold)
         {
-            Set_Status(2);
+            Set_Status(1);
         }
     }
     break;
-    case (4): // 正常控制流程
+    case (3): // 正常控制流程
     {
         Pull_Calibration_Finished = true;
-        Set_Status(5);
+        Set_Status(4);
     }
     break;
-    case (5): // 校准检测
+    case (4): // 校准检测
     {
         // 进入校准保持态首帧时，切到角度环并锁定到固定位置，避免“放空”漂移
         if (Status[Now_Status_Serial].Time == 1)
@@ -766,6 +780,8 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
     case (Shooting_Control_Type_RELOAD):
     {
         Booster->Servo_Trigger.Set_Target_Angle(Booster->tirrger_reset_angle);
+        Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        Booster->Motor_Pull.Set_Target_Radian(pull_hold_after_calib_pos);
 
         if (Status[Now_Status_Serial].Time == 1)
         {
@@ -1173,6 +1189,7 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     
     PB3_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) == GPIO_PIN_SET ? 1 : 0;
     PD7_GPIO = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_SET ? 1 : 0;
+    PA5_GPIO = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET ? 1 : 0;//pull电机上侧微动开关
     //调试代码
     PE15_GPIO = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_15) == GPIO_PIN_SET ? 1 : 0;
 
