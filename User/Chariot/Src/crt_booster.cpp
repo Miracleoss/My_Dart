@@ -342,8 +342,10 @@ static constexpr float TENSION_ERROR_INTEGRAL_LIMIT = 120000.0f;
 static float ramped_target_tension = 0.0f;
 static constexpr float TENSION_RAMP_STEP = 1.8f;
 // 扣锁检测阈值：测量值超过此值说明已扣住
-static constexpr float TENSION_LATCH_THRESHOLD = 38500.0f;
+static constexpr float TENSION_LATCH_THRESHOLD = 37800.0f;
 static bool tension_latched = false;
+static uint32_t latch_tick = 0;
+static constexpr uint32_t LATCH_DELAY_MS = 300;
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）
  *
@@ -356,6 +358,7 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         target_tension_position_pull = Get_Now_position_pull();
         tension_error_integral = 0.0f;
         tension_latched = false;
+        latch_tick = 0;
     }
 
     {
@@ -363,10 +366,11 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         now_tension_value = Get_Measured_Tension();
         target_tension_value = Get_Target_Tension();
 
-        // 扣锁检测：力值突增说明刚扣住，立刻从当前力值开始斜坡
+        // 扣锁检测：力值突增说明刚扣住，记录时刻并从当前力值开始斜坡
         if (!tension_latched && now_tension_value >= TENSION_LATCH_THRESHOLD)
         {
             tension_latched = true;
+            latch_tick = 0;
             ramped_target_tension = now_tension_value;
             tension_error_integral = 0.0f;
         }
@@ -374,8 +378,13 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         // 未扣锁时不做PID控制
         if (!tension_latched)
         {
-            // Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            // Motor_Pull.Set_Target_Radian(0.8f);
+            return;
+        }
+
+        // 扣锁后等待300ms再开始PID控制，让机构稳定
+        if (latch_tick < LATCH_DELAY_MS)
+        {
+            latch_tick++;
             return;
         }
 
