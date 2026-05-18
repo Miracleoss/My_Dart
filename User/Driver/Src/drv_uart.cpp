@@ -78,6 +78,7 @@ void UART_Init(UART_HandleTypeDef *huart, UART_Call_Back Callback_Function, uint
         UART1_Manage_Object.Callback_Function = Callback_Function;
         UART1_Manage_Object.Rx_Buffer_Length = Rx_Buffer_Length;
         HAL_UARTEx_ReceiveToIdle_DMA(huart, UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Length);
+        __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);  // 禁用半传输中断，避免多余回调
     }
     else if (huart->Instance == UART5)
     {
@@ -264,15 +265,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 //        memset( UART5_Manage_Object.Rx_Buffer, 0, UART5_Manage_Object.Rx_Buffer_Length);
 //        
 //    }
-	   if (huart->Instance == USART1)
-    {
-        UART1_Manage_Object.Rx_Length = 32;
-        HAL_UARTEx_ReceiveToIdle_DMA(huart, UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Length*2);
-        if( UART1_Manage_Object.Rx_Length<=UART1_Manage_Object.Rx_Buffer_Length)
-           UART1_Manage_Object.Callback_Function(UART1_Manage_Object.Rx_Buffer, 32);
-        else
-        memset( UART1_Manage_Object.Rx_Buffer, 0, UART1_Manage_Object.Rx_Buffer_Length);
-		}
+    // USART1 已统一在 HAL_UARTEx_RxEventCallback 中处理，此处不再重复处理
+    // 避免双路径同时调用 HAL_UARTEx_ReceiveToIdle_DMA 导致 DMA 状态机竞态
+    UNUSED(huart);
 }
 
 

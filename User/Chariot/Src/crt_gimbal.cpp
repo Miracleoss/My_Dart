@@ -19,7 +19,7 @@ int PB11_GPIO = 0;
 int PB10_GPIO = 0;
 
 
-float test_yaw_angle_mm = 100.0f;
+float test_yaw_angle_mm = 70.0f;
 
 int enable_yaw_calibration = 0;
 
@@ -191,7 +191,7 @@ void Class_Gimbal::Init()
     //Boardc_BMI.Init();
 
     FSM_Yaw_Calibration.Gimbal = this;
-    FSM_Pitch_Calibration.Gimbal = this;
+    // FSM_Pitch_Calibration.Gimbal = this;
 
     FSM_Yaw_Calibration.Init(6,0);
     // FSM_Pitch_Calibration.Init(9,0);
@@ -219,7 +219,7 @@ void Class_Gimbal::Output()
     float now_yaw_mm = Update_Yaw_Transform_From_Screw();
 
     //限制距离
-    const float yaw_limit_guard_mm = 220.0f;
+    const float yaw_limit_guard_mm = 130.0f;
 
     // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
     // Motor_Yaw.Set_Target_Omega_Radian(test_yaw_omega);
