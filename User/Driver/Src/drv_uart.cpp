@@ -183,7 +183,7 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t S
         uintptr_t aligned_addr = addr & ~((uintptr_t)31);
         uintptr_t aligned_end = (addr + rx_size + 31u) & ~((uintptr_t)31);
         int32_t aligned_size = (int32_t)(aligned_end - aligned_addr);
-        SCB_InvalidateDCache_by_Addr((uint32_t *)aligned_addr, aligned_size);
+        //SCB_InvalidateDCache_by_Addr((uint32_t *)aligned_addr, aligned_size);
 
         RS485_Receive_Handler(rs485_rx_buf, rx_size);
 

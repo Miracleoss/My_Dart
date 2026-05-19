@@ -569,6 +569,16 @@
               <FileType>8</FileType>
               <FilePath>..\User\Driver\Src\drv_rs485.cpp</FilePath>
             </File>
+            <File>
+              <FileName>fault_handler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\User\Driver\Src\fault_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>fault_handler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\User\Driver\Inc\fault_handler.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

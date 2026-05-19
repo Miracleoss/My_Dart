@@ -24,6 +24,7 @@ extern "C"
 /* Exported macros -----------------------------------------------------------*/
 
 #define RS485_RX_SIZE 128
+#define RS485_TX_SIZE 32
 
 // 为 H7 D-Cache 准备的对齐宏
 #if defined ( __ICCARM__ )
@@ -33,6 +34,13 @@ extern "C"
 #endif
 
 extern DMA_BUFFER_ALIGN uint8_t rs485_rx_buf[RS485_RX_SIZE];
+extern DMA_BUFFER_ALIGN uint8_t rs485_tx_buf[RS485_TX_SIZE];
+
+// 调试计数器
+extern volatile uint32_t rs485_tx_ok_count;
+extern volatile uint32_t rs485_tx_busy_drop_count;
+extern volatile uint32_t rs485_tx_error_count;
+extern volatile uint32_t rs485_tx_len_error_count;
 
 void RS485_Init(void);
 void RS485_Send_DMA(uint8_t *pData, uint16_t len);

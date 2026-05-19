@@ -130,19 +130,23 @@ void Class_TensionMeter::UART_RxCpltCallback(uint8_t *Rx_Data, uint16_t Length)
  * @brief 远程归零 (写入 01 到 0x0016)
  */
 void Class_TensionMeter::Set_Zero() {
-    // 工业设备通常需要先写 0x0017 为 1 (解锁)
-    uint8_t unlock_cmd[8] = {Station_ID, 0x06, 0x00, 0x17, 0x00, 0x01, 0, 0};
-    uint16_t crc1 = CRC16(unlock_cmd, 6);
-    unlock_cmd[6] = crc1 & 0xFF; unlock_cmd[7] = (crc1 >> 8) & 0xFF;
-    RS485_Send_DMA(unlock_cmd, 8);
-    
-    HAL_Delay(5); // 稍微等待总线空闲
-    
-    // 发送归零命令
-    uint8_t zero_cmd[8] = {Station_ID, 0x06, 0x00, 0x16, 0x00, 0x01, 0, 0};
-    uint16_t crc2 = CRC16(zero_cmd, 6);
-    zero_cmd[6] = crc2 & 0xFF; zero_cmd[7] = (crc2 >> 8) & 0xFF;
-    RS485_Send_DMA(zero_cmd, 8);
+    // 先写 0x0017 为 1 (解锁写保护)
+    Tx_Buffer[0] = Station_ID; Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;       Tx_Buffer[3] = 0x17;
+    Tx_Buffer[4] = 0x00;       Tx_Buffer[5] = 0x01;
+    uint16_t crc1 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc1 & 0xFF; Tx_Buffer[7] = (crc1 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
+
+    HAL_Delay(5);
+
+    // 发送归零命令 (写入 0x0016)
+    Tx_Buffer[0] = Station_ID; Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;       Tx_Buffer[3] = 0x16;
+    Tx_Buffer[4] = 0x00;       Tx_Buffer[5] = 0x01;
+    uint16_t crc2 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc2 & 0xFF; Tx_Buffer[7] = (crc2 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
 }
 
 /**
@@ -169,25 +173,25 @@ uint16_t Class_TensionMeter::CRC16(uint8_t *ptr, uint16_t len) {
  */
 void Class_TensionMeter::Set_SamplingRate(uint16_t rate) {
     // 1. 关闭写保护 (向 0x0017 写入 0x0001)
-    uint8_t unlock_cmd[8] = {Station_ID, 0x06, 0x00, 0x17, 0x00, 0x01, 0, 0};
-    uint16_t crc1 = CRC16(unlock_cmd, 6);
-    unlock_cmd[6] = crc1 & 0xFF; unlock_cmd[7] = (crc1 >> 8) & 0xFF;
-    RS485_Send_DMA(unlock_cmd, 8);
-    
-    HAL_Delay(10); // 等待变送器响应
+    Tx_Buffer[0] = Station_ID; Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;       Tx_Buffer[3] = 0x17;
+    Tx_Buffer[4] = 0x00;       Tx_Buffer[5] = 0x01;
+    uint16_t crc1 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc1 & 0xFF; Tx_Buffer[7] = (crc1 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
+
+    HAL_Delay(10);
 
     // 2. 写入采样频率 (例如 1280Hz 对应 05 00)
-    uint8_t rate_cmd[8];
-    rate_cmd[0] = Station_ID;
-    rate_cmd[1] = 0x06;         // 写寄存器
-    rate_cmd[2] = 0x00;         // 地址高位
-    rate_cmd[3] = 0x0E;         // 地址低位 0x000E
-    rate_cmd[4] = (uint8_t)(rate >> 8);
-    rate_cmd[5] = (uint8_t)(rate & 0xFF);
-    
-    uint16_t crc2 = CRC16(rate_cmd, 6);
-    rate_cmd[6] = crc2 & 0xFF; rate_cmd[7] = (crc2 >> 8) & 0xFF;
-    RS485_Send_DMA(rate_cmd, 8);
+    Tx_Buffer[0] = Station_ID;
+    Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;
+    Tx_Buffer[3] = 0x0E;
+    Tx_Buffer[4] = (uint8_t)(rate >> 8);
+    Tx_Buffer[5] = (uint8_t)(rate & 0xFF);
+    uint16_t crc2 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc2 & 0xFF; Tx_Buffer[7] = (crc2 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
 }
 
 /**
@@ -195,26 +199,26 @@ void Class_TensionMeter::Set_SamplingRate(uint16_t rate) {
  */
 void Class_TensionMeter::Set_BaudRate(uint8_t index) {
     // 1. 关闭写保护
-    uint8_t unlock_cmd[8] = {Station_ID, 0x06, 0x00, 0x17, 0x00, 0x01, 0, 0};
-    uint16_t crc1 = CRC16(unlock_cmd, 6);
-    unlock_cmd[6] = crc1 & 0xFF; unlock_cmd[7] = (crc1 >> 8) & 0xFF;
-    RS485_Send_DMA(unlock_cmd, 8);
-    
+    Tx_Buffer[0] = Station_ID; Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;       Tx_Buffer[3] = 0x17;
+    Tx_Buffer[4] = 0x00;       Tx_Buffer[5] = 0x01;
+    uint16_t crc1 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc1 & 0xFF; Tx_Buffer[7] = (crc1 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
+
     HAL_Delay(10);
 
     // 2. 写入波特率索引 (例如 115200 对应 8)
-    uint8_t baud_cmd[8];
-    baud_cmd[0] = Station_ID;
-    baud_cmd[1] = 0x06;
-    baud_cmd[2] = 0x00;
-    baud_cmd[3] = 0x10;         // 地址 0x0010
-    baud_cmd[4] = 0x00;
-    baud_cmd[5] = index;
-    
-    uint16_t crc2 = CRC16(baud_cmd, 6);
-    baud_cmd[6] = crc2 & 0xFF; baud_cmd[7] = (crc2 >> 8) & 0xFF;
-    RS485_Send_DMA(baud_cmd, 8);
-    
+    Tx_Buffer[0] = Station_ID;
+    Tx_Buffer[1] = 0x06;
+    Tx_Buffer[2] = 0x00;
+    Tx_Buffer[3] = 0x10;
+    Tx_Buffer[4] = 0x00;
+    Tx_Buffer[5] = index;
+    uint16_t crc2 = CRC16(Tx_Buffer, 6);
+    Tx_Buffer[6] = crc2 & 0xFF; Tx_Buffer[7] = (crc2 >> 8) & 0xFF;
+    RS485_Send_DMA(Tx_Buffer, 8);
+
     // 注意：说明书提到修改波特率立即生效，需断电重启
 }
 

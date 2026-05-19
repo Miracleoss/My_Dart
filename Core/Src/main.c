@@ -32,6 +32,7 @@
 /* USER CODE BEGIN Includes */
 //#include "arm_math.h"
 #include "tsk_config_and_callback.h"
+#include "fault_handler.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,7 +84,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  Fault_Enable();
   /* USER CODE END Init */
 
   /* Configure the system clock */

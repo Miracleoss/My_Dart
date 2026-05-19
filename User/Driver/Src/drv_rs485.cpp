@@ -7,6 +7,13 @@ extern Class_Chariot chariot;
 
 // 放在 D2 指向的内存区（如果 DMA 无法访问 DTCM 请开启此项）
 DMA_BUFFER_ALIGN uint8_t rs485_rx_buf[RS485_RX_SIZE];
+DMA_BUFFER_ALIGN uint8_t rs485_tx_buf[RS485_TX_SIZE];
+
+// 调试计数器
+volatile uint32_t rs485_tx_ok_count       = 0;
+volatile uint32_t rs485_tx_busy_drop_count = 0;
+volatile uint32_t rs485_tx_error_count     = 0;
+volatile uint32_t rs485_tx_len_error_count = 0;
 
 /**
  * @brief 初始化 RS485 接收
@@ -21,12 +28,43 @@ void RS485_Init(void) {
 }
 
 /**
- * @brief DMA 发送封装
+ * @brief DMA 发送封装（安全版）
+ *  - 数据先 memcpy 到持久 32B 对齐的 rs485_tx_buf，再启动 DMA
+ *  - D-Cache clean 地址按 32B 对齐
  */
 void RS485_Send_DMA(uint8_t *pData, uint16_t len) {
-    // H7 必须：在发送前手动刷 Cache，确保 DMA 拿到的内存数据是最新的
-    SCB_CleanDCache_by_Addr((uint32_t *)pData, len);
-    HAL_UART_Transmit_DMA(&huart2, pData, len);
+    if (pData == NULL || len == 0) return;
+
+    if (len > RS485_TX_SIZE) {
+        rs485_tx_len_error_count++;
+        return;
+    }
+
+    // 检查 USART2 TX DMA 是否空闲
+    if (huart2.gState != HAL_UART_STATE_READY) {
+        rs485_tx_busy_drop_count++;
+        return;
+    }
+
+    // 拷贝到持久 buffer，避免栈数组生命周期问题
+    memcpy(rs485_tx_buf, pData, len);
+
+    // D-Cache clean：地址按 32B 对齐
+    uintptr_t start        = (uintptr_t)rs485_tx_buf;
+    uintptr_t aligned_addr = start & ~((uintptr_t)31);
+    uintptr_t end          = start + len;
+    uintptr_t aligned_end  = (end + 31u) & ~((uintptr_t)31);
+    SCB_CleanDCache_by_Addr((uint32_t *)aligned_addr,
+                            (int32_t)(aligned_end - aligned_addr));
+
+    HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(&huart2, rs485_tx_buf, len);
+    if (ret == HAL_OK) {
+        rs485_tx_ok_count++;
+    } else if (ret == HAL_BUSY) {
+        rs485_tx_busy_drop_count++;
+    } else {
+        rs485_tx_error_count++;
+    }
 }
 
 //-----------------------------------------------------------------------------------
