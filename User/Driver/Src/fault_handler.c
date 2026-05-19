@@ -25,9 +25,9 @@ void Fault_Enable(void)
                  | SCB_SHCSR_BUSFAULTENA_Msk
                  | SCB_SHCSR_USGFAULTENA_Msk;
 
-    // 可选：使能 DIV_0_TRP 和 UNALIGN_TRP（调试阶段建议打开）
+    // 保留除零捕获；UNALIGN_TRP 暂不打开，避免库/协议解析中的非对齐访问被放大。
     SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
-               /*| SCB_CCR_UNALIGN_TRP_Msk;*/
+    /* SCB->CCR |= SCB_CCR_UNALIGN_TRP_Msk; */
 }
 
 /* -------- 通用 Fault 解析（供 stm32h7xx_it.c 中 4 个 handler 共用） -------- */

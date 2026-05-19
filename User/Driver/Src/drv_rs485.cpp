@@ -1,4 +1,5 @@
 #include "drv_rs485.h"
+#include "drv_cache.h"
 #include "ita_chariot.h"
 #include "tsk_config_and_callback.h"
 #include "config.h"
@@ -30,7 +31,7 @@ void RS485_Init(void) {
 /**
  * @brief DMA 发送封装（安全版）
  *  - 数据先 memcpy 到持久 32B 对齐的 rs485_tx_buf，再启动 DMA
- *  - D-Cache clean 地址按 32B 对齐
+ *  - D-Cache 开启时才做 clean，地址按 32B 对齐
  */
 void RS485_Send_DMA(uint8_t *pData, uint16_t len) {
     if (pData == NULL || len == 0) return;
@@ -49,13 +50,7 @@ void RS485_Send_DMA(uint8_t *pData, uint16_t len) {
     // 拷贝到持久 buffer，避免栈数组生命周期问题
     memcpy(rs485_tx_buf, pData, len);
 
-    // D-Cache clean：地址按 32B 对齐
-    uintptr_t start        = (uintptr_t)rs485_tx_buf;
-    uintptr_t aligned_addr = start & ~((uintptr_t)31);
-    uintptr_t end          = start + len;
-    uintptr_t aligned_end  = (end + 31u) & ~((uintptr_t)31);
-    SCB_CleanDCache_by_Addr((uint32_t *)aligned_addr,
-                            (int32_t)(aligned_end - aligned_addr));
+    DCache_Clean_IfEnabled(rs485_tx_buf, len);
 
     HAL_StatusTypeDef ret = HAL_UART_Transmit_DMA(&huart2, rs485_tx_buf, len);
     if (ret == HAL_OK) {
@@ -76,8 +71,8 @@ void RS485_Send_DMA(uint8_t *pData, uint16_t len) {
 //  */
 // void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 //     if (huart->Instance == USART2) {
-//         // H7 必须：接收后失效 Cache，确保 CPU 读取的是 DMA 搬回来的新数据
-//         SCB_InvalidateDCache_by_Addr((uint32_t *)rs485_rx_buf, RS485_RX_SIZE);
+//         // H7 D-Cache 开启时，接收后需要失效 Cache，确保 CPU 读取的是 DMA 搬回来的新数据
+//         DCache_Invalidate_IfEnabled(rs485_rx_buf, RS485_RX_SIZE);
         
 //         // 调用我们自己的处理逻辑
 //         RS485_Receive_Handler(rs485_rx_buf, Size);

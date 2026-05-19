@@ -579,6 +579,11 @@
               <FileType>5</FileType>
               <FilePath>..\User\Driver\Inc\fault_handler.h</FilePath>
             </File>
+            <File>
+              <FileName>drv_cache.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\User\Driver\Inc\drv_cache.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
