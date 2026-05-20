@@ -165,6 +165,8 @@ virtualFolder:
         - path: ../User/Driver/Src/drv_tim.cpp
         - path: ../User/Driver/Src/drv_uart.cpp
         - path: ../User/Driver/Src/drv_usb.cpp
+        - path: ../User/Driver/Src/fault_handler.c
+        - path: ../User/Driver/Inc/fault_handler.h
       folders: []
 dependenceList: []
 outDir: .

@@ -59,6 +59,6 @@ void Fault_Capture(uint32_t *stack)
     fault_BFAR  = SCB->BFAR;
     fault_LR    = stack[5];
 
-    __BKPT(0);
-    while (1) { __NOP(); }
+    //__BKPT(0);
+    //while (1) { __NOP(); }
 }

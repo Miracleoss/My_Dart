@@ -20,7 +20,7 @@ int time_test_pushing = 0;
 //测试用
 int aaa_3 = 0;
 
-float GM6020_angle_RELOAD[4] = {117.0f * PI / 180.0f, 239.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
+float GM6020_angle_RELOAD[4] = {118.0f * PI / 180.0f, 240.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
 
 int aasasa = 0;
@@ -98,6 +98,8 @@ int ready_pre_push_reached_time = -1;
 
 // 拉力误差连续满足阈值的累计时间（单位：ms）
 uint16_t tension_in_range_time_ms = 0;
+// Pull 位置环稳定计时（单位：ms）
+static uint16_t pull_pos_stable_ms = 0;
 
 // int servo_test;
 int servo_test_flag = 0;
@@ -331,7 +333,7 @@ float Class_FSM_Pull_Calibration::Linear_Map_Position(float curr_angle, float an
 // 已经通过串口读取到一拉力值
 // 使用全局变量保存，单位为kg
 // 拉力环比例系数
-float K_tension = 0.000000100f;
+float K_tension = 0.000000120f;
 // 拉力环积分系数
 float K_tension_i = 0.0f;
 // 拉力误差积分累计
@@ -340,12 +342,22 @@ static float tension_error_integral = 0.0f;
 static constexpr float TENSION_ERROR_INTEGRAL_LIMIT = 120000.0f;
 // 拉力目标斜坡：每次调用递增，避免阶跃
 static float ramped_target_tension = 0.0f;
-static constexpr float TENSION_RAMP_STEP = 1.8f;
+static constexpr float TENSION_RAMP_STEP = 1.8f;//斜坡步进值
 // 扣锁检测阈值：测量值超过此值说明已扣住
-static constexpr float TENSION_LATCH_THRESHOLD = 37800.0f;
+static constexpr float TENSION_LATCH_THRESHOLD = 37500.0f;
 static bool tension_latched = false;
+static uint16_t latch_fallback_tick = 0;
 static uint32_t latch_tick = 0;
 static constexpr uint32_t LATCH_DELAY_MS = 300;
+static constexpr float TENSION_LATCH_FALLBACK_THRESHOLD = TENSION_LATCH_THRESHOLD - 10000.0f;
+static constexpr uint16_t TENSION_LATCH_FALLBACK_TIMEOUT_MS = 500;
+static constexpr uint32_t LATCH_SETTLE_TIMEOUT_MS = 800;
+static constexpr uint16_t TENSION_SETTLE_STABLE_MS = 80;
+static constexpr float TENSION_SETTLE_DELTA_THRESHOLD = 1500.0f;//连续80ms内读数变化小于1500
+static bool tension_f0_captured = false;
+static uint16_t tension_settle_stable_ms = 0;
+static float tension_settle_last_value = 0.0f;
+static float tension_start_f0 = 0.0f;
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）
  *
@@ -358,7 +370,12 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         target_tension_position_pull = Get_Now_position_pull();
         tension_error_integral = 0.0f;
         tension_latched = false;
+        latch_fallback_tick = 0;
         latch_tick = 0;
+        tension_f0_captured = false;
+        tension_settle_stable_ms = 0;
+        tension_settle_last_value = 0.0f;
+        tension_start_f0 = 0.0f;
     }
 
     {
@@ -367,10 +384,37 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         target_tension_value = Get_Target_Tension();
 
         // 扣锁检测：力值突增说明刚扣住，记录时刻并从当前力值开始斜坡
-        if (!tension_latched && now_tension_value >= TENSION_LATCH_THRESHOLD)
+        bool should_latch_tension = false;
+        if (!tension_latched)
+        {
+            if (now_tension_value >= TENSION_LATCH_THRESHOLD)
+            {
+                should_latch_tension = true;
+                latch_fallback_tick = 0;
+            }
+            else if (now_tension_value >= TENSION_LATCH_FALLBACK_THRESHOLD)
+            {
+                if (latch_fallback_tick < TENSION_LATCH_FALLBACK_TIMEOUT_MS)
+                {
+                    latch_fallback_tick++;
+                }
+                should_latch_tension = latch_fallback_tick >= TENSION_LATCH_FALLBACK_TIMEOUT_MS;
+            }
+            else
+            {
+                latch_fallback_tick = 0;
+            }
+        }
+
+        if (!tension_latched && should_latch_tension)
         {
             tension_latched = true;
+            latch_fallback_tick = 0;
             latch_tick = 0;
+            tension_f0_captured = false;
+            tension_settle_stable_ms = 0;
+            tension_settle_last_value = now_tension_value;
+            tension_start_f0 = now_tension_value;
             ramped_target_tension = now_tension_value;
             tension_error_integral = 0.0f;
         }
@@ -382,10 +426,42 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
         }
 
         // 扣锁后等待300ms再开始PID控制，让机构稳定
-        if (latch_tick < LATCH_DELAY_MS)
+        // Capture F0 only after force readings settle, while keeping the old 300 ms minimum delay.
+        if (!tension_f0_captured)
         {
-            latch_tick++;
-            return;
+            if (latch_tick < LATCH_SETTLE_TIMEOUT_MS)
+            {
+                latch_tick++;
+            }
+
+            const float settle_delta = fabs(now_tension_value - tension_settle_last_value);
+            tension_settle_last_value = now_tension_value;
+
+            if (settle_delta < TENSION_SETTLE_DELTA_THRESHOLD)
+            {
+                if (tension_settle_stable_ms < 0xFFFF)
+                {
+                    tension_settle_stable_ms++;
+                }
+            }
+            else
+            {
+                tension_settle_stable_ms = 0;
+            }
+
+            const bool latch_delay_done = latch_tick >= LATCH_DELAY_MS;
+            const bool impact_settled = tension_settle_stable_ms >= TENSION_SETTLE_STABLE_MS;
+            const bool settle_timeout = latch_tick >= LATCH_SETTLE_TIMEOUT_MS;
+
+            if (!latch_delay_done || (!impact_settled && !settle_timeout))
+            {
+                return;
+            }
+
+            tension_start_f0 = now_tension_value;
+            ramped_target_tension = tension_start_f0;
+            tension_error_integral = 0.0f;
+            tension_f0_captured = true;
         }
 
         // 斜坡：逐步逼近最终目标，消除阶跃超调
@@ -633,6 +709,8 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
+float test_CCC = 0.5f;
+
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
     Status[Now_Status_Serial].Time++;
@@ -648,7 +726,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
     constexpr uint16_t kReloadClawOpenDelayMs = 800;
     constexpr uint16_t kReloadDropDelayMs = 1500;
     constexpr uint16_t kFireHoldMs = 500;
-    constexpr float kTensionReadyThreshold = 100.0f;
+    constexpr float kTensionReadyThreshold = 80.0f;
     constexpr uint16_t kTensionStableMs = 150;
 
     static uint8_t down_lock_stage = 0;
@@ -847,6 +925,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
             prep_task_c_done = false;
             push_top_reached = false;
             pull_loop_first_run = true;
+            pull_pos_stable_ms = 0;//task_C 位置环的稳定时间清0
             tension_in_range_time_ms = 0;
             Booster->target_position_reload_angle = ready_fire_angle;
         }
@@ -913,6 +992,31 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         {
             prep_task_c_done = true;
         }
+
+        // /*-------------TaskC：位置环--------------------------------*/
+        // Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        // Booster->Motor_Pull.Set_Target_Radian(test_CCC);
+
+        // if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.02f)
+        // {
+        //     if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
+        // }
+        // else
+        // {
+        //     pull_pos_stable_ms = 0;
+        // }
+
+        // if (pull_pos_stable_ms >= 150)
+        // {
+        //     prep_task_c_done = true;
+        // }
+        // /*---------------------------------------------------------*/
+
+        // // 超时保护：超过 3 秒未到位则强制放行
+        // if (Status[Now_Status_Serial].Time > 3000)
+        // {
+        //     prep_task_c_done = true;
+        // }
 
         if (prep_task_a_done && prep_task_b_done && prep_task_c_done)
         {

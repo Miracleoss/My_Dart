@@ -173,13 +173,13 @@ void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback
     }
 }
 
-float Motor_Yaw_Omega_P_test = 1900.0f;
-float Motor_Yaw_Omega_I_test = 700.0f;  
-float Motor_Yaw_Omega_D_test = 0.0f;
+const float Motor_Yaw_Omega_P_test = 1900.0f;
+const float Motor_Yaw_Omega_I_test = 700.0f;  
+const float Motor_Yaw_Omega_D_test = 0.0f;
 
-float Motor_Yaw_Angle_P_test = 30.0f;
-float Motor_Yaw_Angle_I_test = 0.0f;
-float Motor_Yaw_Angle_D_test = 0.0f;
+const float Motor_Yaw_Angle_P_test = 30.0f;
+const float Motor_Yaw_Angle_I_test = 0.0f;
+const float Motor_Yaw_Angle_D_test = 0.0f;
 
 /**
  * @brief 云台初始化
@@ -208,8 +208,6 @@ void Class_Gimbal::Init()
  */
 // float test_yaw_omega = -5.0f;
 
-
-int my_allow = 0;
 int minipc_flag = 0;
 int normal_to_minipc_delay_cnt = 0;
 
@@ -219,7 +217,7 @@ void Class_Gimbal::Output()
     float now_yaw_mm = Update_Yaw_Transform_From_Screw();
 
     //限制距离
-    const float yaw_limit_guard_mm = 130.0f;
+    const float yaw_limit_guard_mm = 125.0f;
 
     // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
     // Motor_Yaw.Set_Target_Omega_Radian(test_yaw_omega);
