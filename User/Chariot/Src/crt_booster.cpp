@@ -997,26 +997,27 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         // Booster->Motor_Pull.Set_Target_Radian(test_CCC);
 
-        // if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.02f)
+        // if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.03f)
         // {
-        //     if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
-        // }
-        // else
-        // {
-        //     pull_pos_stable_ms = 0;
-        // }
-
-        // if (pull_pos_stable_ms >= 150)
-        // {
+        //     // if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
         //     prep_task_c_done = true;
         // }
-        // /*---------------------------------------------------------*/
+        // // // else
+        // // // {
+        // // //     pull_pos_stable_ms = 0;
+        // // // }
 
-        // // 超时保护：超过 3 秒未到位则强制放行
-        // if (Status[Now_Status_Serial].Time > 3000)
-        // {
-        //     prep_task_c_done = true;
-        // }
+        // // // if (pull_pos_stable_ms >= 150)
+        // // // {
+        // // //     prep_task_c_done = true;
+        // // // }
+        // //  /*---------------------------------------------------------*/
+
+        // 超时保护：超过 6 秒未到位则强制放行
+        if (Status[Now_Status_Serial].Time > 6000)
+        {
+            prep_task_c_done = true;
+        }
 
         if (prep_task_a_done && prep_task_b_done && prep_task_c_done)
         {
