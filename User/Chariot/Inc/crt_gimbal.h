@@ -128,7 +128,7 @@ protected:
     float Min_Yaw_Angle = 0.0f;
     float Max_Yaw_Angle = 35.0f;
 
-    // 丝杆参数：4mm/圈，总行程350mm
+    // 丝杆参数：4mm/圈，总行程150mm
     float Yaw_Screw_Lead_mm_per_rev = 4.0f;
     float Yaw_Screw_Total_Travel_mm = 150.0f;
 

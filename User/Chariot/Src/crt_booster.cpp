@@ -18,7 +18,7 @@
 int time_test_pushing = 0;
 
 //测试用
-int aaa_3 = 0;
+// int aaa_3 = 0;
 
 float GM6020_angle_RELOAD[4] = {118.0f * PI / 180.0f, 240.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
@@ -116,11 +116,14 @@ int reload_servo_flag_lift = 0;
 int reload_servo_drop_time = 0;
 int reload_servo_lift_time = 0;
 
-/*解决裁判系统允许发射信号边沿检测问题 换弹 HOLD*/
+/*解决 允许发射信号 边沿检测问题 换弹 HOLD*/
 static bool referee_allow_prev = false;
 static uint32_t referee_allow_rise_cnt = 0;
 static constexpr uint32_t REFEREE_ALLOW_SHOOT_MAX_COUNT = 4;
-static bool referee_allow_overlimit_stop = false;
+// 发完第 2 发后暂停 30s，再允许继续发第 3、4 发
+static constexpr uint8_t DART_PAUSE_AFTER_COUNT = 2;//定义发完第2发后暂停
+static constexpr uint16_t DART_MID_PAUSE_MS = 30000;//30s暂停时间
+static bool referee_allow_overlimit_stop = false;// 超过允许次数后停止发射，直到重置
 
 // 发射命令上升沿 token：每次上升沿+1；由发射状态机消费
 static uint32_t shoot_cmd_token = 0;
@@ -167,16 +170,33 @@ void Update_Referee_Allow_Edge()
     {
         shoot_cooldown_ms++;
     }
-    bool cooldown_ready = (shoot_cooldown_ms >= 300);
+    bool cooldown_ready = (shoot_cooldown_ms >= 300);//冷却准备就绪
+
+    // 只在第 2 发已完成、且当前不在发射流程中时计 30s 暂停
+    static uint16_t dart_mid_pause_ms = 0;
+    if (dart_fired_count == DART_PAUSE_AFTER_COUNT && !shooting_cycle_active && !Referee_Allow_Shoot)
+    {
+        if (dart_mid_pause_ms < DART_MID_PAUSE_MS)
+        {
+            dart_mid_pause_ms++;
+        }
+    }
+    else if (dart_fired_count != DART_PAUSE_AFTER_COUNT)
+    {
+        dart_mid_pause_ms = 0;
+    }
+    // 非第 2 发后，或第 2 发后的 30s 已结束，才允许向上位机申请下一发
+    bool dart_mid_pause_ready = (dart_fired_count != DART_PAUSE_AFTER_COUNT) || (dart_mid_pause_ms >= DART_MID_PAUSE_MS);
 
     bool is_idle_ready = Push_Calibration_Finished && Pull_Calibration_Finished
                          && (enable_booster_flag == 1)
                          && !shooting_cycle_active
                          && !Referee_Allow_Shoot
                          && (dart_fired_count < 4)
-                         && cooldown_ready;
+                         && cooldown_ready
+                         && dart_mid_pause_ready;
 
-    aaa_3 = is_idle_ready;
+    // aaa_3 = is_idle_ready;
 
     if (MiniPC_For_Booster != nullptr)
     {
@@ -186,14 +206,16 @@ void Update_Referee_Allow_Edge()
         // b) 上位机上升沿检测：CAN RX [4] 从 0→1 时置位 Referee_Allow_Shoot 一次
         static bool prev_allow_shoot_from_minipc = false;
         bool curr_allow_shoot = (MiniPC_For_Booster->Get_CAN_Rx_MiniPC_Allow_Shoot() != 0);
-        if (curr_allow_shoot && !prev_allow_shoot_from_minipc)
+
+        // 暂停期间即使上位机提前给 Allow_Shoot，也不生成本次发射命令
+        if (is_idle_ready && curr_allow_shoot && !prev_allow_shoot_from_minipc)
         {
             Referee_Allow_Shoot = true;
         }
         prev_allow_shoot_from_minipc = curr_allow_shoot;
     }
 
-    // ============ 正常裁判系统边沿检测 ============
+    // ============ 正常Referee_Allow_Shoot边沿检测 ============
     if (Referee_Allow_Shoot && !referee_allow_prev) {
         referee_allow_rise_cnt++;
         shoot_cmd_token++;
