@@ -133,6 +133,7 @@ static bool shooting_cycle_active = false;
 
 //使能发射机构的enable_booster_flag
 uint8_t enable_booster_flag = 0;
+// static bool claw_closed_for_calibration = false;
 
 // 上位机离线保底备案：MiniPC指针（在Init时由Class_Chariot设置）
 Class_MiniPC *MiniPC_For_Booster = nullptr;
@@ -731,7 +732,7 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-float test_CCC = 0.5f;
+float test_CCC = 0.345f;
 
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
@@ -814,6 +815,8 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 
         if (dart_fired_count >= kMaxDartCount)
         {
+            Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+            Booster->Motor_Pull.Set_Target_Radian(pull_hold_after_calib_pos);
             break;
         }
 
@@ -993,50 +996,51 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
             }
         }
 
-        // Task C: Pull 拉力闭环并等待稳定
-        Booster->Pull_Tension_Control(pull_loop_first_run);
-        pull_loop_first_run = false;
+        // // Task C: Pull 拉力闭环并等待稳定
+        // Booster->Pull_Tension_Control(pull_loop_first_run);
+        // pull_loop_first_run = false;
 
-        const float tension_error = fabs(static_cast<float>(Booster->Get_Target_Tension() - Booster->Get_Measured_Tension()));
-        if (tension_error < kTensionReadyThreshold)
-        {
-            if (tension_in_range_time_ms < 0xFFFF)
-            {
-                tension_in_range_time_ms++;
-            }
-        }
-        else
-        {
-            tension_in_range_time_ms = 0;
-        }
-
-        if (tension_in_range_time_ms >= kTensionStableMs)
-        {
-            prep_task_c_done = true;
-        }
-
-        // /*-------------TaskC：位置环--------------------------------*/
-        // Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        // Booster->Motor_Pull.Set_Target_Radian(test_CCC);
-
-        // if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.03f)
+        // const float tension_error = fabs(static_cast<float>(Booster->Get_Target_Tension() - Booster->Get_Measured_Tension()));
+        // if (tension_error < kTensionReadyThreshold)
         // {
-        //     // if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
+        //     if (tension_in_range_time_ms < 0xFFFF)
+        //     {
+        //         tension_in_range_time_ms++;
+        //     }
+        // }
+        // else
+        // {
+        //     tension_in_range_time_ms = 0;
+        // }
+
+        // if (tension_in_range_time_ms >= kTensionStableMs)
+        // {
         //     prep_task_c_done = true;
         // }
-        // // // else
-        // // // {
-        // // //     pull_pos_stable_ms = 0;
-        // // // }
+        // /*---------------------------------------------------------------*/
 
-        // // // if (pull_pos_stable_ms >= 150)
-        // // // {
-        // // //     prep_task_c_done = true;
-        // // // }
-        // //  /*---------------------------------------------------------*/
+        /*-------------TaskC：位置环--------------------------------*/
+        Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        Booster->Motor_Pull.Set_Target_Radian(test_CCC);
 
-        // 超时保护：超过 6 秒未到位则强制放行
-        if (Status[Now_Status_Serial].Time > 6000)
+        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.03f)
+        {
+            // if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
+            prep_task_c_done = true;
+        }
+        // // else
+        // // {
+        // //     pull_pos_stable_ms = 0;
+        // // }
+
+        // // if (pull_pos_stable_ms >= 150)
+        // // {
+        // //     prep_task_c_done = true;
+        // // }
+        //  /*---------------------------------------------------------*/
+
+        // 超时保护：超过 4 秒未到位则强制放行
+        if (Status[Now_Status_Serial].Time > 4000)
         {
             prep_task_c_done = true;
         }
@@ -1061,7 +1065,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
         Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
 
-        Booster->Pull_Tension_Control(false);
+        // Booster->Pull_Tension_Control(false);
 
         const bool safe_ready = fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - ready_fire_angle) < kSafeAngleTolerance;
         if (safe_ready)
@@ -1161,6 +1165,7 @@ void Class_Booster::Init()
     Servo_Claw[1].Set_Target_Angle(claw_close_angle[1]);
     Servo_Claw[2].Init(&htim1, TIM_CHANNEL_3, 270);
     Servo_Claw[2].Set_Target_Angle(claw_close_angle[2]);
+    // claw_closed_for_calibration = false;
 
     // 拉力电机
     Motor_Pull.PID_Angle.Init(Motor_Pull_Angle_P_test, Motor_Pull_Angle_I_test, 0.0f, 0.0f, 5.0f * PI, 130.0f * PI);
@@ -1341,6 +1346,15 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
 
     if(enable_booster_flag == 1)
     {
+        // if (!claw_closed_for_calibration)//这里是夹爪舵机的控制：只有校准开始的时候才闭合（开机15s）
+        // {
+        //     for (uint8_t i = 0; i < 3; i++)
+        //     {
+        //         Servo_Claw[i].Set_Target_Angle(claw_close_angle[i]);
+        //     }
+        //     claw_closed_for_calibration = true;
+        // }
+
     // 拉力机数值更新
     Measured_Tension = TensionMeter.Get_Tension();
 

@@ -159,7 +159,7 @@ class Class_FSM_Pull_Calibration : public Class_FSM
 public:
     Class_Booster *Booster;
 
-    float Torque_Threshold = 2300.0f;//之前是1500 2000 
+    float Torque_Threshold = 2500.0f;//之前是1500 2000 
     float speed = 40.0f;
 
     float Angle_Forward = 0.0f;

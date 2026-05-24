@@ -518,9 +518,9 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
 
         switch (startup_state)
         {
-        case 0: // 等待5s，让各模块初始化稳定
+        case 0: // 等待15s，让各模块初始化稳定
             startup_tick++;
-            if (startup_tick >= 5000)
+            if (startup_tick >= 15000)
             {
                 startup_state = 1;
             }
