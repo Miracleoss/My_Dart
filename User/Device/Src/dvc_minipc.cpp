@@ -63,7 +63,7 @@ void Class_MiniPC::Data_Process(Enum_MiniPC_Data_Source Data_Source)
       // [3]   Calibration         校准完成标志位 下->上
       // [4]   Allow_Shoot         上位机允许发射
       // [5]   Game_Started        比赛是否开始 下->上
-      // [6]   Hatch_Open          舱门是否打开 下->上
+      // [6]   dart_fired_count    已经发射了多少发飞镖 下->上
       // [7]   Reserved
       CAN_Command_Flag = can_data[0];
       CAN_Command_Speed = (int16_t)(((uint16_t)can_data[1] << 8) | can_data[2]);
@@ -105,12 +105,15 @@ extern Referee_Rx_G_t CAN3_Chassis_Rx_Data_G;
 extern bool Push_Calibration_Finished;
 extern bool Pull_Calibration_Finished;
 extern bool Referee_Allow_Shoot;
+extern int dart_fired_count;
+
 volatile int index = 0;
 uint8_t  test_p = 0; 
 void Class_MiniPC::Output()
 {
   CAN_Calibration_Finished = (Push_Calibration_Finished && Pull_Calibration_Finished) ? 1u : 0u;
   // const uint8_t allow_shoot = Referee_Allow_Shoot ? 1u : 0u;
+
 
   CAN_Tx_Game_Started = 0u;
   CAN_Tx_Hatch_Open = 0u;
@@ -133,7 +136,7 @@ void Class_MiniPC::Output()
   // [3]   Calibration         校准完成标志位 下->上
   // [4]   Allow_Shoot         完美识别标志位 
   // [5]   Game_Started        比赛是否开始 下->上
-  // [6]   Hatch_Open          舱门是否打开 下->上
+  // [6]   dart_fired_count    已经发射了多少发飞镖 下->上
   // [7]   Reserved
   CAN3_MiniPC_Tx_Data_C[0] = CAN_Command_Flag;//回复上位机
   CAN3_MiniPC_Tx_Data_C[1] = (uint8_t)(((uint16_t)CAN_Command_Speed >> 8) & 0xff);//回复上位机
@@ -141,7 +144,7 @@ void Class_MiniPC::Output()
   CAN3_MiniPC_Tx_Data_C[3] = CAN_Calibration_Finished;//下位机校准完成标志位
   // CAN3_MiniPC_Tx_Data_C[4] = allow_shoot;//allow_shoot 是上位机发过来的已经完美对准 这个时候我可以发射了
   CAN3_MiniPC_Tx_Data_C[5] = CAN_Tx_Game_Started; //裁判系统:比赛状态
-  CAN3_MiniPC_Tx_Data_C[6] = CAN_Tx_Hatch_Open; //裁判系统:发射机构舱门是否打开
+  CAN3_MiniPC_Tx_Data_C[6] = dart_fired_count; //告诉上位机已经发射了多少发飞镖
   CAN3_MiniPC_Tx_Data_C[7] = CAN_Tx_Shoot_Request; //下位机向上位机申请发射
 }
 

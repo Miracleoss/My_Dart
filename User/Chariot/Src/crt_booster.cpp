@@ -732,7 +732,7 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-float test_CCC = 0.345f;
+float test_CCC = 0.389f;
 
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
@@ -1023,7 +1023,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Booster->Motor_Pull.Set_Target_Radian(test_CCC);
 
-        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.03f)
+        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.005f)
         {
             // if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
             prep_task_c_done = true;
