@@ -20,7 +20,7 @@ int time_test_pushing = 0;
 //测试用
 // int aaa_3 = 0;
 
-float GM6020_angle_RELOAD[4] = {118.0f * PI / 180.0f, 240.0f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
+float GM6020_angle_RELOAD[4] = {118.0f * PI / 180.0f, 240.5f * PI / 180.0f, 360.0f * PI / 180.0f, 479.0f * PI / 180.0f};
 float GM6020_angle_ELUDE[4] = {178.0f * PI / 180.0f, 300.0f * PI / 180.0f, 415.0f * PI / 180.0f, 539.0f * PI / 180.0f};
 
 int aasasa = 0;
@@ -732,14 +732,14 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-float test_CCC = 0.389f;
+float pull_position_task_C[4] = {0.34f, 0.33f, 0.34f, 0.33f};
 
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
     Status[Now_Status_Serial].Time++;
 
     constexpr uint8_t kMaxDartCount = 4;
-    constexpr uint16_t kDownLockServoCloseDelayMs = 300;
+    constexpr uint16_t kDownLockServoCloseDelayMs = 500;
     constexpr float kPushDownOmega = -320.0f;
     constexpr float kPushUpOmega = 370.0f;
     constexpr float kPushBackoffOmega = -20.0f;
@@ -1020,10 +1020,11 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // /*---------------------------------------------------------------*/
 
         /*-------------TaskC：位置环--------------------------------*/
+        const uint8_t pull_idx = dart_fired_count < kMaxDartCount ? static_cast<uint8_t>(dart_fired_count) : static_cast<uint8_t>(kMaxDartCount - 1);
         Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Pull.Set_Target_Radian(test_CCC);
+        Booster->Motor_Pull.Set_Target_Radian(pull_position_task_C[pull_idx]);
 
-        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - test_CCC) < 0.005f)
+        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - pull_position_task_C[pull_idx]) < 0.005f)
         {
             // if (pull_pos_stable_ms < 0xFFFF) pull_pos_stable_ms++;
             prep_task_c_done = true;
