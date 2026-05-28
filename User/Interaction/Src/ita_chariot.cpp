@@ -535,11 +535,11 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
             }
             break;
         case 2: // 校准完成，等待裁判系统进入对战阶段
-            // if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE)
-            // {
-            //     startup_state = 3;
-            // }
+            if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE)
+            {
                 startup_state = 3;
+            }
+                // startup_state = 3;
             break;
         case 3: // 对战阶段，开启MINIPC通信
             minipc_flag = 1;
