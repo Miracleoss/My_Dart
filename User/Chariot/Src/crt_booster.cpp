@@ -732,7 +732,7 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-float pull_position_task_C[4] = {0.34f, 0.33f, 0.34f, 0.33f};
+float pull_position_task_C[4] = {0.46f, 0.45f, 0.45f, 0.45f};
 
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
