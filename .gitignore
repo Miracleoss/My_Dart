@@ -1,35 +1,80 @@
+# STM32CubeMX / Keil project files
+# Keep these tracked:
+# *.ioc
+# .mxproject
+# *.uvprojx
+# *.uvmpw
+# *.sct
+# *.ld
+# startup_*.s
+# *.jdebug
+
+# Keil local packs, usually should not be committed
+MDK-ARM/.pack/
+
+# Keil / MDK-ARM build output directories
+MDK-ARM/Objects/
+MDK-ARM/Listings/
 MDK-ARM/DebugConfig/
 MDK-ARM/RTE/
+MDK-ARM/ZLIC_2026/
 MDK-ARM/ZLLC_2026/
-MDK-ARM/*.uvguix.*
-MDK-ARM/JLinkLog.txt
-/build/
- # 忽略 Keil 工程编译生成的文件
-*.bak
+MDK-ARM/output/
+build/
+Build/
+
+# Keil / MDK generated files
+*.o
+*.obj
+*.d
+*.dep
+*.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.crf
+*.lnp
+*.htm
+*.srec
+*.dis
+*.su
+*.cyclo
 *.ddk
 *.edk
-*.lst
-*.lnp
 *.mpf
 *.mpj
-*.obj
 *.omf
 *.plg
 *.rpt
-*.tmp
 *.__i
-*.crf
-*.o
-*.d
-*.axf
 *.tra
-*.dep          
-JLinkLog.txt
 *.iex
-*.htm
-*.sct
-*.map
-*.Administrator
+
+# Keil / MDK user-specific files
+*.uvguix.*
+*.uvgui.*
 *.uvopt
- # 忽略 VSCode 配置文件夹
-.vscode/
+*.uvoptx
+*.Administrator
+*.jdebug.user
+
+# J-Link logs
+JLinkLog.txt
+MDK-ARM/JLinkLog.txt
+
+# VSCode user-local files
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/c_cpp_properties.json
+!.vscode/extensions.json
+
+# OS and editor temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.log
+*.swp

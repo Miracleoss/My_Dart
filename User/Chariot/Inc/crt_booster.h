@@ -106,7 +106,6 @@ public:
     uint8_t reload_stage = 0;
     uint16_t reload_drop_start_time = 0;
 
-    float push_speed =  60.0f;
 };
 
 /*

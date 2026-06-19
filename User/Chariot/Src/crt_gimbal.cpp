@@ -15,13 +15,9 @@
 
 /* Private macros ------------------------------------------------------------*/
 
-int PB11_GPIO = 0;
-int PB10_GPIO = 0;
-
-
-float test_yaw_angle_mm = 70.0f;
-
 int enable_yaw_calibration = 0;
+int PB11_GPIO = 0;
+float yaw_post_calibration_target_mm = 70.0f;
 
 
 // PB11 中断锁存：按下一次即记住，直到状态机消费（Yaw 微动开关）
@@ -166,7 +162,7 @@ void Class_FSM_Yaw_Calibration::Yaw_Calibration_TIM_Status_PeriodElapsedCallback
             Gimbal->Yaw_Calibrated = true;
             Gimbal->Set_Gimbal_Control_Type(Gimbal_Control_Type_NORMAL);
             Gimbal->Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-            Gimbal->Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
+            Gimbal->Motor_Yaw.Set_Target_Radian(yaw_post_calibration_target_mm);
         }
      }
      break;
@@ -191,10 +187,8 @@ void Class_Gimbal::Init()
     //Boardc_BMI.Init();
 
     FSM_Yaw_Calibration.Gimbal = this;
-    // FSM_Pitch_Calibration.Gimbal = this;
 
     FSM_Yaw_Calibration.Init(6,0);
-    // FSM_Pitch_Calibration.Init(9,0);
 
     Motor_Yaw.PID_Angle.Init(Motor_Yaw_Angle_P_test, Motor_Yaw_Angle_I_test, Motor_Yaw_Angle_D_test, 0.0f, 5.0f * PI, 5.0f * PI);
     Motor_Yaw.PID_Omega.Init(Motor_Yaw_Omega_P_test, Motor_Yaw_Omega_I_test, Motor_Yaw_Omega_D_test, 0.0f, Motor_Yaw.Get_Output_Max(), Motor_Yaw.Get_Output_Max());
@@ -209,7 +203,6 @@ void Class_Gimbal::Init()
 // float test_yaw_omega = -5.0f;
 
 int minipc_flag = 0;
-int normal_to_minipc_delay_cnt = 0;
 
 void Class_Gimbal::Output()
 {
@@ -254,39 +247,14 @@ void Class_Gimbal::Output()
 
     if (Gimbal_Control_Type == Gimbal_Control_Type_DISABLE)
     {
-        normal_to_minipc_delay_cnt = 0;
         // Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_OMEGA);
         // Motor_Yaw.Set_Target_Omega_Radian(0.0f);
     }
     else if(Gimbal_Control_Type == Gimbal_Control_Type_NORMAL)
     {
-        // if (minipc_flag == 0)
-        // {
-        //     if (normal_to_minipc_delay_cnt < 9000)
-        //     {
-        //         normal_to_minipc_delay_cnt++;
-        //     }
-        //     if (normal_to_minipc_delay_cnt >= 9000)
-        //     {
-        //         minipc_flag = 1;
-        //     }
-        // }
-        // else
-        // {
-        //     normal_to_minipc_delay_cnt = 0;
-        // }
-
-        // if(my_allow)
-        // {
-        //     Motor_Yaw.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        //     Motor_Yaw.Set_Target_Radian(test_yaw_angle_mm);
-        // }
-        
     }
     else if (Gimbal_Control_Type == Gimbal_Control_Type_MINIPC)
     {
-        normal_to_minipc_delay_cnt = 0;
-
         // 发射期间冻结 yaw 轴：停止使用上位机速度数据，速度环给 0
         if (Referee_Allow_Shoot)
         {
@@ -323,7 +291,6 @@ void Class_Gimbal::TIM_Calculate_PeriodElapsedCallback()
 {
 
     PB11_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11) == GPIO_PIN_SET ? 1 : 0;
-    PB10_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10) == GPIO_PIN_SET ? 1 : 0;
 
     Update_MiniPC_Command();
 
@@ -337,8 +304,6 @@ void Class_Gimbal::TIM_Calculate_PeriodElapsedCallback()
 
     //PID输出
     Motor_Yaw.TIM_PID_PeriodElapsedCallback();
-    // Motor_Pitch_L.TIM_PID_PeriodElapsedCallback();
-    // Motor_Pitch_R.TIM_PID_PeriodElapsedCallback();
 }
 
 /************************ COPYRIGHT(C) USTC-ROBOWALKER **************************/

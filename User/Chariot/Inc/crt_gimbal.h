@@ -17,7 +17,6 @@
 #include "dvc_djimotor.h"
 #include "dvc_minipc.h"
 #include "dvc_imu.h"
-#include "dvc_lkmotor.h"
 #include "alg_fsm.h"
 /* Exported macros -----------------------------------------------------------*/
 
@@ -54,31 +53,6 @@ public:
 };
 
 /**
- * @brief Specialized, Pitch轴校准有限自动机
- *
- */
-class Class_FSM_Pitch_Calibration : public Class_FSM
-{
-public:
-    Class_Gimbal *Gimbal;
-
-    float Torque_Threshold = 600.0f;
-    float speed = 0.5f;
-
-    float Angle_Upside_L = 0.0f;
-    float Angle_Downside_L = 0.0f;
-    float Angle_Upside_R = 0.0f;
-    float Angle_Downside_R = 0.0f;
-
-    int Up_Flag_L = 0;
-    int Down_Flag_L = 0;
-    int Up_Flag_R = 0;
-    int Down_Flag_R = 0;
-
-    void Pitch_Calibration_TIM_Status_PeriodElapsedCallback();
-};
-
-/**
  * @brief Specialized, 云台类
  *
  */
@@ -92,11 +66,9 @@ public:
     Class_MiniPC *MiniPC;
 
     Class_FSM_Yaw_Calibration FSM_Yaw_Calibration;
-    Class_FSM_Pitch_Calibration FSM_Pitch_Calibration;
-
     friend class Class_FSM_Yaw_Calibration;
-    friend class Class_FSM_Pitch_Calibration;
 
+    // Pitch motors are still used by CAN receive and alive callbacks.
     Class_DJI_Motor_C610 Motor_Pitch_L;
     Class_DJI_Motor_C610 Motor_Pitch_R;
     Class_DJI_Motor_C610 Motor_Yaw;
@@ -114,16 +86,10 @@ public:
 
 
     void TIM_Calculate_PeriodElapsedCallback();
-    float Calculate_Linear(float max,float min,float now_enc, float up_enc, float down_enc);
     float Update_Yaw_Transform_From_Screw();
     void Update_MiniPC_Command();
 
 protected:
-    //初始化相关常量
-    float Gimbal_Head_Angle;
-    //常量
-    float CRUISE_SPEED_YAW = 100.f;
-    float CRUISE_SPEED_PITCH = 70.f;
     // yaw轴最小/最大行程（mm）
     float Min_Yaw_Angle = 0.0f;
     float Max_Yaw_Angle = 35.0f;
@@ -131,15 +97,6 @@ protected:
     // 丝杆参数：4mm/圈，总行程150mm
     float Yaw_Screw_Lead_mm_per_rev = 4.0f;
     float Yaw_Screw_Total_Travel_mm = 150.0f;
-
-    //yaw总角度
-    float Yaw_Total_Angle;
-    float Yaw_Half_Turns;
-
-    // pitch轴最小值
-    float Min_Pitch_Angle = -25.0f;
-    // pitch轴最大值
-    float Max_Pitch_Angle = -10.0f ; //多10°
 
     //内部变量 
 
