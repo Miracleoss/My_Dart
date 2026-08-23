@@ -85,6 +85,16 @@ enum Enum_Reload_Control_Type
 };
 
 /**
+ * @brief Pull 输入语义：FORCE_RATIO/TENSION 数值越大表示力量越大；STROKE_RATIO 始终为 0=底部、1=顶部。
+ */
+enum Enum_Pull_Control_Mode : uint8_t
+{
+    Pull_Control_Mode_STROKE_RATIO = 0,
+    Pull_Control_Mode_FORCE_RATIO,
+    Pull_Control_Mode_TENSION,
+};
+
+/**
  * @brief Specialized, 有限自动机->发射过程状态机
  *
  */
@@ -213,21 +223,21 @@ public:
     // 换弹电机
     Class_DJI_Motor_GM6020 Motor_Reload_Angle;
 
-    void Pull_Tension_Control(bool is_first_run);
-
     void Init();
 
     inline Enum_Booster_Control_Type Get_Booster_Control_Type();
     inline Enum_Shooting_Control_Type Get_Shooting_Control_Type();
     inline Enum_Reload_Control_Type Get_Reload_Control_Type();
     inline Enum_Reload_Status Get_Reload_Status();
+    inline Enum_Pull_Control_Mode Get_Pull_Control_Mode();
 
     inline int Get_Target_PushMotor_Angle();
     inline int Get_Target_PullMotor_Angle();
-    inline int Get_Measured_Tension();
-    inline int Get_Target_Tension();
+    inline float Get_Measured_Tension_Gram();
+    inline float Get_Target_Tension_Gram();
+    inline float Get_Target_Pull_Stroke_Ratio();
+    inline float Get_Target_Pull_Force_Ratio();
     inline float Get_Target_position_push();
-    inline float Get_Target_position_pull();
     inline float Get_Now_position_push();
     inline float Get_Now_position_pull();
 
@@ -236,10 +246,13 @@ public:
     inline void Set_Reload_Status(Enum_Reload_Status __Reload_Status);
     inline void Set_Target_PushMotor_Angle(float __Target_PushMotor_Angle);
     inline void Set_Target_PullMotor_Angle(float __Target_PullMotor_Angle);
-    inline void Set_Measured_Tension(int __Measured_Tension);
-    inline void Set_Target_Tension(int __Target_Tension);
+    void Set_Pull_Stroke_Ratio(float stroke_ratio);
+    void Set_Pull_Force_Ratio(float force_ratio);
+    void Set_Target_Tension_Gram(float tension_g);
+    bool Configure_Pull_Force_Stroke_Range(float low_force_stroke_ratio,
+                                           float high_force_stroke_ratio);
+    void Update_Pull_Control(bool is_first_run);
     inline void Set_Target_position_push(float __target_position_push);
-    inline void Set_Target_position_pull(float __target_position_pull);
     inline void Set_Now_position_push(float __now_position_push);
     inline void Set_Now_position_pull(float __now_position_pull);
     inline void Set_Now_position_reload_linear(float __now_position_reload_linear);
@@ -256,7 +269,8 @@ protected:
     // bool Pull_Calibration_Finished = false;
 
     float target_position_push = 0.95f; // 校准完成后push电机目标位置
-    float target_position_pull = 0.5f;  // 校准完成后pull电机目标位置
+    // Pull 位置坐标始终为 0=底部、1=顶部。
+    float target_position_pull = 0.5f;
 
     float now_position_push = 0.0f; // 当前push电机位置
     float now_position_pull = 0.0f; // 当前pull电机位置
@@ -288,8 +302,16 @@ protected:
 
     /*----------------------------tension----------------------------------*/
     // 拉力相关变量
-    float Measured_Tension = 0;     // 测量的拉力值
-    float Target_Tension = 42010.0f; // 目标的拉力值，单位g
+    Enum_Pull_Control_Mode Pull_Control_Mode = Pull_Control_Mode_STROKE_RATIO;
+    float target_pull_force_ratio = 0.0f;
+
+    // 开环力量比例的安全映射端点：小力靠近顶部，大力靠近底部。
+    float low_force_stroke_ratio = 0.95f;
+    float high_force_stroke_ratio = 0.05f;
+
+    float Measured_Tension_Gram = 0.0f;
+    float Target_Tension_Gram = 42010.0f;
+    bool pull_tension_control_initialized = false;
 
     // 拉力环相关变量
     float now_tension_value = 0.0f;                            // 当前测得的拉力值
@@ -306,6 +328,7 @@ protected:
     float Target_PullMotor_Angle = 0.0f;
 
     // 内部函数
+    void Pull_Tension_Control(bool is_first_run);
 };
 
 /* Exported variables --------------------------------------------------------*/
@@ -342,6 +365,11 @@ inline Enum_Reload_Control_Type Class_Booster::Get_Reload_Control_Type()
     return (FSM_Reload.Reload_Control_Type);
 }
 
+inline Enum_Pull_Control_Mode Class_Booster::Get_Pull_Control_Mode()
+{
+    return Pull_Control_Mode;
+}
+
 int Class_Booster::Get_Target_PushMotor_Angle()
 {
     return Target_PushMotor_Angle;
@@ -357,24 +385,29 @@ int Class_Booster::Get_Target_PullMotor_Angle()
  *
  * @return int 获取当前拉力
  */
-inline int Class_Booster::Get_Measured_Tension()
+inline float Class_Booster::Get_Measured_Tension_Gram()
 {
-    return (Measured_Tension);
+    return Measured_Tension_Gram;
 }
 
-inline int Class_Booster::Get_Target_Tension()
+inline float Class_Booster::Get_Target_Tension_Gram()
 {
-    return (Target_Tension);
+    return Target_Tension_Gram;
+}
+
+inline float Class_Booster::Get_Target_Pull_Stroke_Ratio()
+{
+    return target_position_pull;
+}
+
+inline float Class_Booster::Get_Target_Pull_Force_Ratio()
+{
+    return target_pull_force_ratio;
 }
 
 inline float Class_Booster::Get_Target_position_push()
 {
     return (target_position_push);
-}
-
-inline float Class_Booster::Get_Target_position_pull()
-{
-    return (target_position_pull);
 }
 
 inline float Class_Booster::Get_Now_position_push()
@@ -422,34 +455,9 @@ inline void Class_Booster::Set_Target_PullMotor_Angle(float __Target_PullMotor_A
     Target_PullMotor_Angle = __Target_PullMotor_Angle;
 }
 
-/**
- * @brief 设定测量拉力
- *
- * @param __Measured_Tension 测量拉力
- */
-void Class_Booster::Set_Measured_Tension(int __Measured_Tension)
-{
-    Measured_Tension = __Measured_Tension;
-}
-
-/**
- * @brief 设置目标拉力,
- *
- * @return int 设置目标拉力
- */
-void Class_Booster::Set_Target_Tension(int __Target_Tension)
-{
-    Target_Tension = __Target_Tension;
-}
-
 inline void Class_Booster::Set_Target_position_push(float __target_position_push)
 {
     target_position_push = __target_position_push;
-}
-
-inline void Class_Booster::Set_Target_position_pull(float __target_position_pull)
-{
-    target_position_pull = __target_position_pull;
 }
 
 inline void Class_Booster::Set_Now_position_push(float __now_position_push)

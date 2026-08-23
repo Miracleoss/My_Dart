@@ -12,6 +12,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include "crt_booster.h"
+#include <float.h>
 
 /* Private constants ---------------------------------------------------------*/
 
@@ -322,6 +323,125 @@ static bool tension_f0_captured = false;
 static uint16_t tension_settle_stable_ms = 0;
 static float tension_settle_last_value = 0.0f;
 static float tension_start_f0 = 0.0f;
+
+static bool Pull_Is_Finite(float value)
+{
+    return value >= -FLT_MAX && value <= FLT_MAX;
+}
+
+static float Pull_Clamp_Unit_Ratio(float ratio)
+{
+    if (ratio < 0.0f)
+    {
+        return 0.0f;
+    }
+    if (ratio > 1.0f)
+    {
+        return 1.0f;
+    }
+    return ratio;
+}
+
+void Class_Booster::Set_Pull_Stroke_Ratio(float stroke_ratio)
+{
+    if (!Pull_Is_Finite(stroke_ratio))
+    {
+        return;
+    }
+
+    target_position_pull = Pull_Clamp_Unit_Ratio(stroke_ratio);
+    Pull_Control_Mode = Pull_Control_Mode_STROKE_RATIO;
+}
+
+void Class_Booster::Set_Pull_Force_Ratio(float force_ratio)
+{
+    if (!Pull_Is_Finite(force_ratio))
+    {
+        return;
+    }
+
+    target_pull_force_ratio = Pull_Clamp_Unit_Ratio(force_ratio);
+    // 机构力量与行程方向相反：力量比例越大，解析出的行程目标越小。
+    target_position_pull = low_force_stroke_ratio
+                         + target_pull_force_ratio
+                         * (high_force_stroke_ratio - low_force_stroke_ratio);
+    Pull_Control_Mode = Pull_Control_Mode_FORCE_RATIO;
+}
+
+void Class_Booster::Set_Target_Tension_Gram(float tension_g)
+{
+    if (!Pull_Is_Finite(tension_g))
+    {
+        return;
+    }
+
+    Target_Tension_Gram = tension_g < 0.0f ? 0.0f : tension_g;
+    if (Pull_Control_Mode != Pull_Control_Mode_TENSION)
+    {
+        pull_tension_control_initialized = false;
+    }
+    Pull_Control_Mode = Pull_Control_Mode_TENSION;
+}
+
+bool Class_Booster::Configure_Pull_Force_Stroke_Range(float low_force_stroke,
+                                                       float high_force_stroke)
+{
+    if (!Pull_Is_Finite(low_force_stroke)
+        || !Pull_Is_Finite(high_force_stroke)
+        || low_force_stroke < 0.0f
+        || low_force_stroke > 1.0f
+        || high_force_stroke < 0.0f
+        || high_force_stroke > 1.0f
+        || high_force_stroke >= low_force_stroke)
+    {
+        return false;
+    }
+
+    low_force_stroke_ratio = low_force_stroke;
+    high_force_stroke_ratio = high_force_stroke;
+
+    if (Pull_Control_Mode == Pull_Control_Mode_FORCE_RATIO)
+    {
+        target_position_pull = low_force_stroke_ratio
+                             + target_pull_force_ratio
+                             * (high_force_stroke_ratio - low_force_stroke_ratio);
+    }
+    return true;
+}
+
+void Class_Booster::Update_Pull_Control(bool is_first_run)
+{
+    if (Pull_Control_Mode == Pull_Control_Mode_STROKE_RATIO
+        || Pull_Control_Mode == Pull_Control_Mode_FORCE_RATIO)
+    {
+        Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        Motor_Pull.Set_Target_Radian(target_position_pull);
+        return;
+    }
+
+    const bool needs_initialization = is_first_run || !pull_tension_control_initialized;
+    if (!TensionMeter.Is_Online())
+    {
+        if (needs_initialization)
+        {
+            target_tension_position_pull = Get_Now_position_pull();
+        }
+        // 传感器离线时禁止继续增力，保持最后一次有效行程目标。
+        target_position_pull = target_tension_position_pull;
+        Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+        Motor_Pull.Set_Target_Radian(target_position_pull);
+        pull_tension_control_initialized = false;
+        return;
+    }
+
+    // 外环尚未扣锁或正在等待稳定时，也要先保持上一次有效目标。
+    Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
+    Motor_Pull.Set_Target_Radian(target_tension_position_pull);
+    Pull_Tension_Control(needs_initialization);
+    target_position_pull = target_tension_position_pull;
+    pull_tension_control_initialized = true;
+}
+
 /**
  * @brief 拉力外环控制（将拉力误差映射为 Pull 电机的目标位置）
  *
@@ -344,8 +464,8 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
 
     {
         // 读取测量值与最终目标
-        now_tension_value = Get_Measured_Tension();
-        target_tension_value = Get_Target_Tension();
+        now_tension_value = Get_Measured_Tension_Gram();
+        target_tension_value = Get_Target_Tension_Gram();
 
         // 扣锁检测：力值突增说明刚扣住，记录时刻并从当前力值开始斜坡
         bool should_latch_tension = false;
@@ -477,8 +597,9 @@ void Class_Booster::Pull_Tension_Control(bool is_first_run)
             target_tension_position_pull = 0.05f;
         }
 
+        target_position_pull = target_tension_position_pull;
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Motor_Pull.Set_Target_Radian(target_tension_position_pull);
+        Motor_Pull.Set_Target_Radian(target_position_pull);
     }
 }
 
@@ -920,10 +1041,10 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         }
 
         // // Task C: Pull 拉力闭环并等待稳定
-        // Booster->Pull_Tension_Control(pull_loop_first_run);
+        // Booster->Update_Pull_Control(pull_loop_first_run);
         // pull_loop_first_run = false;
 
-        // const float tension_error = fabs(static_cast<float>(Booster->Get_Target_Tension() - Booster->Get_Measured_Tension()));
+        // const float tension_error = fabs(Booster->Get_Target_Tension_Gram() - Booster->Get_Measured_Tension_Gram());
         // if (tension_error < kTensionReadyThreshold)
         // {
         //     if (tension_in_range_time_ms < 0xFFFF)
@@ -979,7 +1100,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         Booster->Motor_Push_L.Set_Target_Omega_Radian(0.0f);
         Booster->Motor_Push_R.Set_Target_Omega_Radian(0.0f);
 
-        // Booster->Pull_Tension_Control(false);
+        // Booster->Update_Pull_Control(false);
 
         const bool safe_ready = fabs(Booster->Motor_Reload_Angle.Get_Now_Radian() - ready_fire_angle) < kSafeAngleTolerance;
         if (safe_ready)
@@ -1141,7 +1262,7 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     {
 
     // 拉力机数值更新
-    Measured_Tension = TensionMeter.Get_Tension();
+    Measured_Tension_Gram = TensionMeter.Get_Tension();
 
     // 皮筋校准
     FSM_Push_Calibration.Push_Calibration_TIM_Status_PeriodElapsedCallback();
