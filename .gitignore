@@ -78,3 +78,6 @@ Thumbs.db
 *.bak
 *.log
 *.swp
+
+# Local isolated worktrees used by development agents
+.worktrees/
