@@ -425,12 +425,13 @@ void Class_Booster::Update_Pull_Control(bool is_first_run)
         if (needs_initialization)
         {
             target_tension_position_pull = Get_Now_position_pull();
+            // 仅在进入拉力模式且已离线时采样一次当前位置，后续断线周期保持该目标。
+            pull_tension_control_initialized = true;
         }
         // 传感器离线时禁止继续增力，保持最后一次有效行程目标。
         target_position_pull = target_tension_position_pull;
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Motor_Pull.Set_Target_Radian(target_position_pull);
-        pull_tension_control_initialized = false;
         return;
     }
 
