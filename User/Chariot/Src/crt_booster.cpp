@@ -794,7 +794,14 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-float pull_position_task_C[4] = {0.39f, 0.40f, 0.42f, 0.45f};
+// External force values increase with the requested force; the intermediate
+// layer maps them inversely to smaller pull strokes.
+static constexpr float kPullForceRatioTaskC[4] = {
+    0.622222f,
+    0.611111f,
+    0.588889f,
+    0.555556f,
+};
 
 void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
 {
@@ -1064,16 +1071,22 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // }
         // /*---------------------------------------------------------------*/
 
-        /*-------------TaskC：位置环--------------------------------*/
-        const uint8_t pull_idx = dart_fired_count < kMaxDartCount ? static_cast<uint8_t>(dart_fired_count) : static_cast<uint8_t>(kMaxDartCount - 1);
-        Booster->Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
-        Booster->Motor_Pull.Set_Target_Radian(pull_position_task_C[pull_idx]);
+        // Task C uses increasing-force semantics. The intermediate layer maps
+        // the larger external force value to a smaller pull-stroke target.
+        const uint8_t pull_idx = dart_fired_count < kMaxDartCount
+                               ? static_cast<uint8_t>(dart_fired_count)
+                               : static_cast<uint8_t>(kMaxDartCount - 1);
 
-        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - pull_position_task_C[pull_idx]) < 0.005f)
+        Booster->Set_Pull_Force_Ratio(kPullForceRatioTaskC[pull_idx]);
+        Booster->Update_Pull_Control(pull_loop_first_run);
+        pull_loop_first_run = false;
+
+        const float target_pull_stroke = Booster->Get_Target_Pull_Stroke_Ratio();
+        if (fabs(Booster->Motor_Pull.Get_Now_Radian() - target_pull_stroke) < 0.005f)
         {
             prep_task_c_done = true;
         }
-        //  /*---------------------------------------------------------*/
+        /*-------------------------------------------------------------------------*/
 
         // 超时保护：超过 4 秒未到位则强制放行
         if (Status[Now_Status_Serial].Time > 4000)
