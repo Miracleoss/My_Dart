@@ -326,6 +326,7 @@ static float tension_start_f0 = 0.0f;
 
 static bool Pull_Is_Finite(float value)
 {
+    // NaN 与正负无穷都会使比较为 false，用 FLT_MAX 避免额外引入数学库判定函数。
     return value >= -FLT_MAX && value <= FLT_MAX;
 }
 
@@ -344,6 +345,7 @@ static float Pull_Clamp_Unit_Ratio(float ratio)
 
 void Class_Booster::Set_Pull_Stroke_Ratio(float stroke_ratio)
 {
+    // 行程比例是底层物理坐标，直接限制在 0=底部、1=顶部。
     if (!Pull_Is_Finite(stroke_ratio))
     {
         return;
@@ -355,6 +357,7 @@ void Class_Booster::Set_Pull_Stroke_Ratio(float stroke_ratio)
 
 void Class_Booster::Set_Pull_Force_Ratio(float force_ratio)
 {
+    // 操作侧力量比例采用直觉方向：0=小力、1=大力，再由安全区间反向映射到行程。
     if (!Pull_Is_Finite(force_ratio))
     {
         return;
@@ -370,6 +373,7 @@ void Class_Booster::Set_Pull_Force_Ratio(float force_ratio)
 
 void Class_Booster::Set_Target_Tension_Gram(float tension_g)
 {
+    // 只切换到传感器目标拉力模式；是否运行闭环由 Update_Pull_Control() 统一调度。
     if (!Pull_Is_Finite(tension_g))
     {
         return;
@@ -386,6 +390,7 @@ void Class_Booster::Set_Target_Tension_Gram(float tension_g)
 bool Class_Booster::Configure_Pull_Force_Stroke_Range(float low_force_stroke,
                                                        float high_force_stroke)
 {
+    // 合法安全区间必须保持力量方向：高力量端的行程更小，不能反向或重合。
     if (!Pull_Is_Finite(low_force_stroke)
         || !Pull_Is_Finite(high_force_stroke)
         || low_force_stroke < 0.0f
@@ -411,6 +416,7 @@ bool Class_Booster::Configure_Pull_Force_Stroke_Range(float low_force_stroke,
 
 void Class_Booster::Update_Pull_Control(bool is_first_run)
 {
+    // 所有对外 Pull 输入最终都通过这里下发，避免调用方绕过模式和安全检查。
     if (Pull_Control_Mode == Pull_Control_Mode_STROKE_RATIO
         || Pull_Control_Mode == Pull_Control_Mode_FORCE_RATIO)
     {
@@ -794,8 +800,8 @@ void Class_FSM_Pull_Calibration::Pull_Calibration_TIM_Status_PeriodElapsedCallba
     }
 }
 
-// External force values increase with the requested force; the intermediate
-// layer maps them inversely to smaller pull strokes.
+// 由原始行程 {0.39, 0.40, 0.42, 0.45} 按默认公式反算得到。
+// 数值越大表示期望力量越大，进入中间层后会映射为更小的 Pull 行程。
 static constexpr float kPullForceRatioTaskC[4] = {
     0.622222f,
     0.611111f,
@@ -1071,8 +1077,7 @@ void Class_FSM_Shooting::Shooting_TIM_Status_PeriodElapsedCallback()
         // }
         // /*---------------------------------------------------------------*/
 
-        // Task C uses increasing-force semantics. The intermediate layer maps
-        // the larger external force value to a smaller pull-stroke target.
+        // Task C 使用力量比例语义；真正给 Pull 电机的位置目标由中间层解析。
         const uint8_t pull_idx = dart_fired_count < kMaxDartCount
                                ? static_cast<uint8_t>(dart_fired_count)
                                : static_cast<uint8_t>(kMaxDartCount - 1);

@@ -233,6 +233,7 @@ public:
 
     inline int Get_Target_PushMotor_Angle();
     inline int Get_Target_PullMotor_Angle();
+    // Pull 统一语义接口：对外区分行程比例、开环力量比例、传感器拉力三种输入。
     inline float Get_Measured_Tension_Gram();
     inline float Get_Target_Tension_Gram();
     inline float Get_Target_Pull_Stroke_Ratio();
@@ -246,6 +247,7 @@ public:
     inline void Set_Reload_Status(Enum_Reload_Status __Reload_Status);
     inline void Set_Target_PushMotor_Angle(float __Target_PushMotor_Angle);
     inline void Set_Target_PullMotor_Angle(float __Target_PullMotor_Angle);
+    // 直接行程仍保持物理坐标 0=底部、1=顶部；力量类输入则统一为数值越大力量越大。
     void Set_Pull_Stroke_Ratio(float stroke_ratio);
     void Set_Pull_Force_Ratio(float force_ratio);
     void Set_Target_Tension_Gram(float tension_g);
@@ -305,10 +307,12 @@ protected:
     Enum_Pull_Control_Mode Pull_Control_Mode = Pull_Control_Mode_STROKE_RATIO;
     float target_pull_force_ratio = 0.0f;
 
+    // target_position_pull 保存最终给位置环的行程目标，所有力量语义都先解析到这个坐标。
     // 开环力量比例的安全映射端点：小力靠近顶部，大力靠近底部。
     float low_force_stroke_ratio = 0.95f;
     float high_force_stroke_ratio = 0.05f;
 
+    // 拉力传感器路径使用真实单位 g；PREP_FIRE 默认不启用该闭环路径。
     float Measured_Tension_Gram = 0.0f;
     float Target_Tension_Gram = 42010.0f;
     bool pull_tension_control_initialized = false;
