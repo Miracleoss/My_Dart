@@ -420,11 +420,13 @@ void Class_Booster::Update_Pull_Control(bool is_first_run)
     if (Pull_Control_Mode == Pull_Control_Mode_STROKE_RATIO
         || Pull_Control_Mode == Pull_Control_Mode_FORCE_RATIO)
     {
+        // 直接行程或力量比例模式：直接给位置环目标即可，Pull_Tension_Control() 不参与。赋值后直接跳出
         Motor_Pull.Set_DJI_Motor_Control_Method(DJI_Motor_Control_Method_ANGLE);
         Motor_Pull.Set_Target_Radian(target_position_pull);
         return;
     }
 
+    // 拉力模式：需要先判断传感器是否在线，若离线则保持上一次有效目标。
     const bool needs_initialization = is_first_run || !pull_tension_control_initialized;
     if (!TensionMeter.Is_Online())
     {

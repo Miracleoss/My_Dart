@@ -304,7 +304,7 @@ protected:
 
     /*----------------------------tension----------------------------------*/
     // 拉力相关变量
-    Enum_Pull_Control_Mode Pull_Control_Mode = Pull_Control_Mode_STROKE_RATIO;
+    Enum_Pull_Control_Mode Pull_Control_Mode = Pull_Control_Mode_STROKE_RATIO;//这里用于修改PULL的控制模式
     float target_pull_force_ratio = 0.0f;
 
     // target_position_pull 保存最终给位置环的行程目标，所有力量语义都先解析到这个坐标。
