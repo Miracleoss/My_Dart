@@ -38,7 +38,6 @@
 #include "tsk_config_and_callback.h"
 #include "drv_bsp-boarda.h"
 #include "drv_tim.h"
-#include "drv_rs485.h"
 #include "dvc_boardc_bmi088.h"
 #include "dvc_dmmotor.h"
 #include "ita_chariot.h"
@@ -241,15 +240,6 @@ void Gimbal_Device_CAN1_Callback(Struct_CAN_Rx_Buffer *CAN_RxMessage)
             chariot.Booster.Motor_Push_R.CAN_RxCpltCallback(CAN_RxMessage->Data);
         }
         break;
-        // case(0x204):
-        // {
-        //     chariot.Booster.Motor_Reload_Linear.CAN_RxCpltCallback(CAN_RxMessage->Data);
-        // }
-        // break;
-        case(0x205):
-        {
-            chariot.Booster.Motor_Reload_Angle.CAN_RxCpltCallback(CAN_RxMessage->Data);
-        }
 	}
 }
 #endif
@@ -401,18 +391,12 @@ void SuperCAP_UART1_Callback(uint8_t *Buffer, uint16_t Length)
 // #if defined GIMBAL
 // void Tension_UART1_Callback(uint8_t *Buffer, uint16_t Length)
 // {
-//     chariot.Booster.TensionMeter.UART_RxCpltCallback(Buffer, Length);
+//
 // }
 // #endif
 
-extern "C" void RS485_Receive_Handler(uint8_t *pData, uint16_t len)
-{
     // 只要有数据进来，就丢给对象去解析
-    // chariot.Booster.TensionMeter.Data_Process(pData, len);
-    chariot.Booster.TensionMeter.UART_RxCpltCallback(pData, len);
     // 测试回显
-    //RS485_Send_DMA(pData, len);
-}
 
 /**
  * @brief USB MiniPC回调函数
@@ -533,8 +517,6 @@ void Task1ms_TIM5_Callback()
     /****************************** 驱动层回调函数 1ms *****************************************/ 
         //CAN统一打包发送
         TIM_CAN_PeriodElapsedCallback();
-        //RS485统一发送(dart)
-        TIM_RS485_PeriodElapsedCallback();
         
         static int mod5 = 0,mod100 = 0,mod68 = 0;
         mod5++;
@@ -617,8 +599,6 @@ extern "C" void Task_Init()
         USB_Init(&MiniPC_USB_Manage_Object,MiniPC_USB_Callback);
         // //上位机串口
         UART_Init(&huart8, MiniPC_UART_Callback, 56);
-        //初始化拉力机RS485
-        RS485_Init();
         //裁判系统
         UART_Init(&huart1, Referee_UART10_Callback, 128);
 

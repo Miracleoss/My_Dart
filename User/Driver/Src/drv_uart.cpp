@@ -12,7 +12,6 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include "drv_uart.h"
-#include "drv_rs485.h"
 #include "drv_cache.h"
 // #include "config.h"
 #include "string.h"
@@ -34,13 +33,6 @@ Struct_UART_Manage_Object UART7_Manage_Object = {0};
 Struct_UART_Manage_Object UART8_Manage_Object = {0};
 Struct_UART_Manage_Object UART9_Manage_Object = {0};
 Struct_UART_Manage_Object UART10_Manage_Object = {0};
-
-volatile uint32_t rs485_rx_event_count = 0;
-volatile uint32_t rs485_rx_total_bytes = 0;
-volatile uint32_t rs485_rx_oversize_count = 0;
-volatile uint32_t rs485_rx_restart_fail_count = 0;
-volatile uint32_t rs485_rx_restart_busy_count = 0;
-volatile uint16_t rs485_rx_last_size = 0;
 
 /* Private function declarations ---------------------------------------------*/
 
@@ -166,39 +158,8 @@ extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t S
         memset( UART1_Manage_Object.Rx_Buffer, 0, UART1_Manage_Object.Rx_Buffer_Length);
 		//tttt++;
     }
-    else if (huart->Instance == USART2) 
-    {
-        uint16_t rx_size = Size;
-        if (rx_size > RS485_RX_SIZE)
-        {
-            rs485_rx_oversize_count++;
-            rx_size = RS485_RX_SIZE;
-        }
-
-        rs485_rx_event_count++;
-        rs485_rx_last_size = rx_size;
-        rs485_rx_total_bytes += rx_size;
-
-        DCache_Invalidate_IfEnabled(rs485_rx_buf, RS485_RX_SIZE);
-
-        RS485_Receive_Handler(rs485_rx_buf, rx_size);
-
         // USART2 当前是 DMA_CIRCULAR，回调中通常无需重启接收。
         // 若强行重启，常见返回 HAL_BUSY(与 RxState=BUSY_RX 对应)，并非真正故障。
-        if (huart2.hdmarx != NULL && huart2.hdmarx->Init.Mode != DMA_CIRCULAR)
-        {
-            HAL_StatusTypeDef restart_status = HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rs485_rx_buf, RS485_RX_SIZE);
-            if (restart_status == HAL_BUSY)
-            {
-                rs485_rx_restart_busy_count++;
-            }
-            else if (restart_status != HAL_OK)
-            {
-                rs485_rx_restart_fail_count++;
-            }
-        }
-        __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
-    }
     else if (huart->Instance == UART5)
     {
 			  

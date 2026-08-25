@@ -47,7 +47,6 @@ virtualFolder:
         - path: ../User/Device/Src/dvc_supercap.cpp
         - path: ../User/Device/Src/dvc_VT13.cpp
         - path: ../User/Device/Src/dvc_GraphicsSendTask.cpp
-        - path: ../User/Device/Src/dvc_TensionMeter.cpp
         - path: ../User/Device/Src/dvc_servo.cpp
         - path: ../User/Device/Src/dvc_buzzer.cpp
       folders: []
@@ -160,7 +159,6 @@ virtualFolder:
         - path: ../User/Driver/Src/drv_dwt.cpp
         - path: ../User/Driver/Src/drv_i2c.cpp
         - path: ../User/Driver/Src/drv_math.cpp
-        - path: ../User/Driver/Src/drv_rs485.cpp
         - path: ../User/Driver/Src/drv_spi.cpp
         - path: ../User/Driver/Src/drv_tim.cpp
         - path: ../User/Driver/Src/drv_uart.cpp

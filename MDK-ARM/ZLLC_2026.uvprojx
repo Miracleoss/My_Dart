@@ -495,11 +495,6 @@
               <FilePath>..\User\Device\Src\dvc_GraphicsSendTask.cpp</FilePath>
             </File>
             <File>
-              <FileName>dvc_TensionMeter.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\User\Device\Src\dvc_TensionMeter.cpp</FilePath>
-            </File>
-            <File>
               <FileName>dvc_servo.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\User\Device\Src\dvc_servo.cpp</FilePath>
@@ -563,11 +558,6 @@
               <FileName>drv_usb.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\User\Driver\Src\drv_usb.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>drv_rs485.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\User\Driver\Src\drv_rs485.cpp</FilePath>
             </File>
             <File>
               <FileName>fault_handler.c</FileName>
