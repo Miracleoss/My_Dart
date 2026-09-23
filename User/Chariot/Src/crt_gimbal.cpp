@@ -17,7 +17,7 @@
 
 int enable_yaw_calibration = 0;
 int PB11_GPIO = 0;
-float yaw_post_calibration_target_mm = 70.0f;
+float yaw_post_calibration_target_mm = 120.0f;
 
 
 // PB11 中断锁存：按下一次即记住，直到状态机消费（Yaw 微动开关）

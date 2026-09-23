@@ -12,22 +12,25 @@
 
 #define SCREW_LEAD 0.004f
 
-static constexpr float kPullPrepTarget = 0.39f;
-static constexpr uint16_t kShootCooldownMs = 300;
-static constexpr uint16_t kDownLockServoCloseDelayMs = 500;
-static constexpr uint16_t kFireHoldMs = 500;
-static constexpr uint16_t kPrepTimeoutMs = 4000;
-static constexpr float kPushDownOmega = -320.0f;
-static constexpr float kPushUpOmega = 370.0f;
-static constexpr float kPushBackoffOmega = -20.0f;
-static constexpr float kPushBackoffDistance = 0.006f;
-static constexpr float kPullReadyTolerance = 0.005f;
+static constexpr float kPullPrepTarget = 0.9f; //pull电机预备发射位置，单位：行程比（0~1）
+static constexpr uint16_t kShootCooldownMs = 300;//发射后冷却时间，单位：ms
+static constexpr uint16_t kDownLockServoCloseDelayMs = 500;//下锁舌闭合延时，单位：ms
+static constexpr uint16_t kFireHoldMs = 500;//发射后保持时间，单位：ms
+static constexpr uint16_t kPrepTimeoutMs = 4000;//预备发射超时，单位：ms
+static constexpr float kPushDownOmega = -390.0f;//下锁拉紧皮筋电机速度，单位：rad/s
+static constexpr float kPushUpOmega = 400.0f;//松开皮筋电机速度，单位：rad/s
+static constexpr float kPushBackoffOmega = -20.0f;//回退电机速度，单位：rad/s
+static constexpr float kPushBackoffDistance = 0.006f;//下锁拉紧皮筋后回退距离，单位：m
+static constexpr float kPullReadyTolerance = 0.005f;//预备发射位置误差容忍度，单位：行程比（0~1）
 
 /* GPIO snapshots ------------------------------------------------------------*/
 
 int PB3_GPIO = 0;
 int PD7_GPIO = 0;
 int PA5_GPIO = 0;
+
+//按钮PE7
+int PE7_GPIO = 0;
 
 /* EXTI event latches --------------------------------------------------------*/
 
@@ -56,7 +59,7 @@ Class_Referee *Referee_For_Booster = nullptr;
 /* Shooting flow state -------------------------------------------------------*/
 
 int dart_fired_count = 0;
-float pull_hold_after_calib_pos = 0.9f;
+float pull_hold_after_calib_pos = 0.9f;//pull电机常驻位置0.9
 
 static bool minipc_fallback_prev = false;
 static bool referee_allow_prev = false;
@@ -683,6 +686,8 @@ void Class_Booster::Init()
     Motor_Push_R.Init(&hfdcan1, DJI_Motor_ID_0x203, DJI_Motor_Control_Method_OMEGA, 1.0f);
 }
 
+//按钮冷却保护
+int button_cooldown_counter = 2000;
 /**
  * @brief 输出到电机
  *
@@ -690,6 +695,23 @@ void Class_Booster::Init()
 void Class_Booster::Output()
 {
     //此处无内容
+    //调试 按钮PE7
+    static int last_dart_fired_count = 0;
+
+    if (dart_fired_count != last_dart_fired_count)
+    {
+        last_dart_fired_count = dart_fired_count;
+        button_cooldown_counter = 0;
+    }
+    else if (button_cooldown_counter < 2000)
+    {
+        button_cooldown_counter++;
+    }
+
+    if (PE7_GPIO == 0 && button_cooldown_counter >= 2000)
+    {
+        Referee_Allow_Shoot = true;
+    }
 }
 
 void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
@@ -697,6 +719,10 @@ void Class_Booster::TIM_Calculate_PeriodElapsedCallback()
     PB3_GPIO = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_3) == GPIO_PIN_SET ? 1 : 0;
     PD7_GPIO = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7) == GPIO_PIN_SET ? 1 : 0;
     PA5_GPIO = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5) == GPIO_PIN_SET ? 1 : 0;//pull电机上侧微动开关
+
+    //按钮PE7
+    PE7_GPIO = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_7) == GPIO_PIN_SET ? 1 : 0;
+
 
     Update_Referee_Allow_Edge();
 

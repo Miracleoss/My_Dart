@@ -518,9 +518,9 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
 
         switch (startup_state)
         {
-        case 0: // 等待15s，让各模块初始化稳定
+        case 0: // 等待10s，让各模块初始化稳定
             startup_tick++;
-            if (startup_tick >= 15000)
+            if (startup_tick >= 10000)
             {
                 startup_state = 1;
             }
@@ -535,11 +535,11 @@ void Class_Chariot::TIM_Calculate_PeriodElapsedCallback()
             }
             break;
         case 2: // 校准完成，等待裁判系统进入对战阶段
-            if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE)
-            {
+            // if (Referee.Get_Game_Stage() == Referee_Game_Status_Stage_BATTLE)
+            // {
+            //     startup_state = 3;
+            // }
                 startup_state = 3;
-            }
-                // startup_state = 3;
             break;
         case 3: // 对战阶段，开启MINIPC通信
             minipc_flag = 1;
